@@ -18,7 +18,6 @@ Dokumen ini merangkum status pengembangan, arsitektur teknis, serta daftar fitur
 | **Ekspor Laporan PDF** | ✅ Selesai | Generator A4 multi-halaman (Simpan via SAF & Bagikan via FileProvider) |
 
 - **Nama Aplikasi**: `KasKu`
-- **Application ID**: `com.aistudio.kasku.mrxqzp`
 - **Platform**: Android (Kotlin, Jetpack Compose, Material Design 3, Min SDK 24 / Target SDK 36)
 - **Firebase Project ID**: `gen-lang-client-0077623958`
 - **Firestore Database ID**: `ai-studio-android-kasku-b6a5b26f-bbcc-4afb-a821-88399d1b5680`
