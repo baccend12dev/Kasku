@@ -19,6 +19,7 @@ Dokumen ini merangkum status pengembangan, arsitektur teknis, serta daftar fitur
 | **Transaksi Berulang (Tagihan & Gaji)** | ✅ Selesai | Jadwal bulanan rutin (tanggal 1–31), status aktif/nonaktif, dan pencatatan 1-ketuk atomik |
 | **Pengingat Harian & Peringatan Anggaran** | ✅ Selesai | Pengingat harian (`AlarmManager` inexact + izin `POST_NOTIFICATIONS`), banner & notifikasi batas 80%/100% |
 | **Ekspor Laporan PDF** | ✅ Selesai | Generator A4 multi-halaman (Simpan via SAF & Bagikan via FileProvider) |
+| **Build APK & CI/CD GitHub Releases** | ✅ Selesai | `gradle :app:assembleDebug` sukses + workflow otomatis `.github/workflows/release-apk.yml` |
 
 - **Nama Aplikasi**: `KasKu`
 - **Platform**: Android (Kotlin, Jetpack Compose, Material Design 3, Min SDK 24 / Target SDK 36)
@@ -131,10 +132,58 @@ Seluruh data pengguna disimpan secara terisolasi di bawah path `/users/{userId}/
 - **Deploy Rules**: Aturan keamanan sudah ter-deploy ke database produksi Firebase.
 - **Audit Keamanan Kode**: 0 temuan pola autentikasi terlarang (`signInAnonymously`, `signInWithEmailAndPassword`) maupun pemanggilan Firestore tanpa ID database.
 - **Sinkronisasi Live**: Pencatatan kategori, pengaturan saldo awal, dan transaksi sudah terverifikasi masuk ke Cloud Firestore secara real-time.
+- **Verifikasi Build APK**: `gradle :app:assembleDebug` berhasil membangun `app/build/outputs/apk/debug/app-debug.apk` tanpa error.
 
 ---
 
-## 5. Rencana Pengembangan Berikutnya (Opsional / Backlog)
+## 5. Build APK & Publikasi ke GitHub Releases
+
+Proyek ini sudah dilengkapi hasil build APK lokal (`app/build/outputs/apk/debug/app-debug.apk`) serta workflow otomatis **GitHub Actions** (`.github/workflows/release-apk.yml`) agar Anda dapat membangun dan menerbitkan file `.apk` langsung ke halaman **GitHub Releases**.
+
+### A. Cara Otomatis via GitHub Actions (Direkomendasikan)
+Setelah proyek di-push ke repositori GitHub:
+
+1. **Melalui Menu GitHub Actions (1 Klik)**:
+   - Buka repositori Anda di GitHub → pilih tab **Actions**.
+   - Pilih workflow **Build & Release KasKu APK** → klik **Run workflow**.
+   - Masukkan tag versi (misalnya `v1.0.0`) lalu klik **Run workflow**.
+2. **Atau melalui Git Tag**:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+3. **Hasil Otomatis**:
+   - GitHub akan membangun file **`KasKu-v1.0.0.apk`** menggunakan JDK 21 & Gradle 9.3.1.
+   - Secara default (tanpa konfigurasi secret tambahan), workflow men-decode `debug.keystore.base64` yang SHA-1-nya sudah terdaftar di Firebase sehingga **Google Sign-In langsung berfungsi**.
+   - File APK otomatis diunggah ke halaman **Releases** GitHub (siap diunduh & dipasang di Android) dan juga tersimpan sebagai *Workflow Artifact*.
+
+### B. Cara Build Lokal (Android Studio / Terminal)
+Prasyarat: **JDK 21**, **Android SDK (API 36.1)**, dan **Gradle 9.3.1**.
+
+1. **Siapkan Keystore Proyek** (agar login Google langsung berjalan):
+   ```bash
+   base64 -d debug.keystore.base64 > debug.keystore
+   ```
+2. **Jalankan Build APK**:
+   ```bash
+   gradle :app:assembleDebug
+   ```
+3. **Lokasi File APK**:
+   - `app/build/outputs/apk/debug/app-debug.apk`
+   - Anda dapat mengunggah file tersebut secara manual ke **GitHub → Releases → Draft a new release → Attach binaries**.
+
+### C. Opsional: Build Release APK dengan Keystore Produksi Sendiri
+Jika ingin menerbitkan APK bertanda tangan **release keystore** milik sendiri (misalnya untuk distribusi publik/Play Store):
+1. Daftarkan **SHA-1** dan **SHA-256** dari keystore baru Anda di **Firebase Console → Project Settings → Your Apps (Android)** lalu perbarui `app/google-services.json`.
+2. Di repositori GitHub, tambahkan 3 *Repository Secrets* (**Settings → Secrets and variables → Actions**):
+   - `RELEASE_KEYSTORE_BASE64`: isi file `.jks` dalam format base64 (`base64 -w 0 my-upload-key.jks`)
+   - `STORE_PASSWORD`: password keystore
+   - `KEY_PASSWORD`: password key alias `upload`
+3. Saat workflow **Build & Release KasKu APK** dijalankan kembali, workflow akan otomatis membangun varian **release** (`:app:assembleRelease`).
+
+---
+
+## 6. Rencana Pengembangan Berikutnya (Opsional / Backlog)
 
 - [x] **Target Tabungan (Saving Goals)** (Dana Darurat, Liburan, dll.)
 - [x] **Transaksi Berulang Otomatis** (tagihan bulanan, langganan, dan gaji rutin)
