@@ -1,0 +1,6 @@
+{
+  "name": "KasKu",
+  "description": "Aplikasi pencatatan keuangan pribadi untuk mengelola pengeluaran bulanan, grafik saldo harian, kategori pengeluaran, dan ekspor laporan PDF.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

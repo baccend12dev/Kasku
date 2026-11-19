@@ -1,0 +1,91 @@
+<resources>
+    <string name="app_name">KasKu</string>
+    <string name="app_tagline">Catat pengeluaran, pantau saldo harian, dan ekspor laporan PDF dengan rapi.</string>
+
+    <!-- Auth -->
+    <string name="auth_title">Kelola Keuangan Bulanan Lebih Tenang</string>
+    <string name="auth_subtitle">Simpan catatan pengeluaran secara aman di cloud, lihat grafik pergerakan saldo harian, dan unduh laporan PDF kapan saja.</string>
+    <string name="auth_sign_in_google">Masuk dengan Google</string>
+    <string name="auth_signing_in">Menghubungkan akun…</string>
+    <string name="auth_feature_expenses">Catat uang keluar &amp; masuk lengkap dengan kategori</string>
+    <string name="auth_feature_chart">Grafik interaktif pemantauan saldo harian</string>
+    <string name="auth_feature_pdf">Ekspor laporan bulanan rapi ke format PDF</string>
+    <string name="auth_sign_out">Keluar Akun</string>
+
+    <!-- Navigation -->
+    <string name="nav_dashboard">Beranda</string>
+    <string name="nav_transactions">Transaksi</string>
+    <string name="nav_categories">Kategori</string>
+    <string name="nav_reports">Laporan</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_current_balance">Saldo Bulan Ini</string>
+    <string name="dashboard_opening_balance">Saldo Awal</string>
+    <string name="dashboard_total_income">Pemasukan</string>
+    <string name="dashboard_total_expense">Pengeluaran</string>
+    <string name="dashboard_budget_progress">Anggaran Bulanan</string>
+    <string name="dashboard_set_balance">Atur Saldo Awal</string>
+    <string name="dashboard_daily_chart_title">Pemantauan Harian</string>
+    <string name="dashboard_chart_tab_balance">Saldo Harian</string>
+    <string name="dashboard_chart_tab_expense">Keluar Harian</string>
+    <string name="dashboard_recent_transactions">Transaksi Terbaru</string>
+    <string name="dashboard_see_all">Lihat Semua</string>
+    <string name="dashboard_empty_title">Belum ada catatan bulan ini</string>
+    <string name="dashboard_empty_subtitle">Mulai catat pengeluaran atau atur saldo awal bulan agar grafik saldo harian langsung aktif.</string>
+
+    <!-- Transactions -->
+    <string name="tx_add_new">Catat Transaksi</string>
+    <string name="tx_edit">Edit Transaksi</string>
+    <string name="tx_search_placeholder">Cari keperluan atau catatan…</string>
+    <string name="tx_filter_all">Semua</string>
+    <string name="tx_type_expense">Pengeluaran</string>
+    <string name="tx_type_income">Pemasukan</string>
+    <string name="tx_field_amount">Jumlah (Rp)</string>
+    <string name="tx_field_title">Untuk apa / Keterangan</string>
+    <string name="tx_field_title_hint">Contoh: Makan siang, Listrik PLN, Bensin</string>
+    <string name="tx_field_category">Kategori</string>
+    <string name="tx_field_payment">Metode Pembayaran</string>
+    <string name="tx_field_date">Tanggal</string>
+    <string name="tx_field_note">Catatan (opsional)</string>
+    <string name="tx_save">Simpan</string>
+    <string name="tx_update">Perbarui</string>
+    <string name="tx_delete">Hapus</string>
+    <string name="tx_cancel">Batal</string>
+    <string name="tx_confirm_delete_title">Hapus Transaksi?</string>
+    <string name="tx_confirm_delete_body">Catatan ini akan dihapus permanen dari laporan bulanan Anda.</string>
+
+    <!-- Categories -->
+    <string name="cat_title">Kategori Pengeluaran</string>
+    <string name="cat_add_new">Tambah Kategori</string>
+    <string name="cat_edit">Edit Kategori</string>
+    <string name="cat_field_name">Nama Kategori</string>
+    <string name="cat_field_budget">Batas Anggaran Bulanan (Rp, opsional)</string>
+    <string name="cat_field_icon">Pilih Ikon</string>
+    <string name="cat_field_color">Pilih Warna</string>
+    <string name="cat_empty">Belum ada pengeluaran pada kategori bulan ini.</string>
+    <string name="cat_confirm_delete_title">Hapus Kategori?</string>
+    <string name="cat_confirm_delete_body">Transaksi lama tetap tersimpan, namun kategori ini tidak lagi muncul untuk catatan baru.</string>
+
+    <!-- Month Config -->
+    <string name="month_config_title">Atur Saldo Awal &amp; Anggaran</string>
+    <string name="month_config_opening">Saldo Awal Bulan (Rp)</string>
+    <string name="month_config_budget">Target Batas Pengeluaran Bulanan (Rp)</string>
+    <string name="month_config_hint">Saldo awal dipakai sebagai titik mulai grafik saldo harian bulan ini.</string>
+
+    <!-- Reports / PDF -->
+    <string name="report_title">Laporan Bulanan &amp; PDF</string>
+    <string name="report_export_save">Simpan ke Perangkat (PDF)</string>
+    <string name="report_export_share">Bagikan Laporan PDF</string>
+    <string name="report_generating">Membuat dokumen PDF…</string>
+    <string name="report_saved_success">Laporan PDF berhasil disimpan!</string>
+    <string name="report_saved_error">Gagal menyimpan laporan PDF.</string>
+    <string name="report_share_chooser">Bagikan Laporan Keuangan KasKu</string>
+    <string name="report_account_section">Akun &amp; Sinkronisasi Cloud</string>
+
+    <!-- Content Descriptions -->
+    <string name="cd_prev_month">Bulan sebelumnya</string>
+    <string name="cd_next_month">Bulan berikutnya</string>
+    <string name="cd_add_transaction">Tambah transaksi baru</string>
+    <string name="cd_auth_hero">Ilustrasi pengelolaan keuangan KasKu</string>
+    <string name="cd_clear_search">Hapus pencarian</string>
+</resources>

@@ -1,0 +1,188 @@
+{
+  "entities": {
+    "Transaction": {
+      "title": "Transaction",
+      "description": "A personal income or expense record belonging to a user for a specific month and day.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Short description of where money went or came from (1-100 chars)."
+        },
+        "amount": {
+          "type": "integer",
+          "description": "Transaction amount in Rupiah (positive integer up to 1,000,000,000,000)."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["EXPENSE", "INCOME"],
+          "description": "Whether this transaction is an expense or income."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Identifier of the associated category."
+        },
+        "categoryName": {
+          "type": "string",
+          "description": "Denormalized display name of the category."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["TUNAI", "TRANSFER", "EWALLET", "KARTU"],
+          "description": "Payment method used for the transaction."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional additional note (max 300 chars)."
+        },
+        "dateMillis": {
+          "type": "integer",
+          "description": "Transaction date as Unix epoch milliseconds."
+        },
+        "yearMonth": {
+          "type": "string",
+          "description": "Month bucket formatted as YYYY-MM."
+        },
+        "dayOfMonth": {
+          "type": "integer",
+          "description": "Day of the month (1-31) for daily balance charts."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation and update."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "amount",
+        "type",
+        "categoryId",
+        "categoryName",
+        "paymentMethod",
+        "dateMillis",
+        "yearMonth",
+        "dayOfMonth",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "An expense or income category customized or used by the user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "name": {
+          "type": "string",
+          "description": "Category display name (1-50 chars)."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["EXPENSE", "INCOME"],
+          "description": "Category type."
+        },
+        "iconKey": {
+          "type": "string",
+          "description": "Material icon identifier key."
+        },
+        "colorHex": {
+          "type": "string",
+          "description": "Accent color hex string (#RRGGBB)."
+        },
+        "budgetLimit": {
+          "type": "integer",
+          "description": "Optional monthly budget cap in Rupiah (0 means no cap)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation and update."
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "type",
+        "iconKey",
+        "colorHex",
+        "budgetLimit",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MonthConfig": {
+      "title": "MonthConfig",
+      "description": "Monthly opening balance and budget configuration for a given YYYY-MM period.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "yearMonth": {
+          "type": "string",
+          "description": "Month identifier formatted as YYYY-MM."
+        },
+        "openingBalance": {
+          "type": "integer",
+          "description": "Starting balance at the beginning of the month in Rupiah."
+        },
+        "monthlyBudget": {
+          "type": "integer",
+          "description": "Target monthly spending budget in Rupiah (0 means unset)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation and update."
+        }
+      },
+      "required": [
+        "userId",
+        "yearMonth",
+        "openingBalance",
+        "monthlyBudget",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "User-scoped personal finance transactions (expenses and incomes)."
+    },
+    "/users/{userId}/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "User-scoped expense and income categories."
+    },
+    "/users/{userId}/monthConfigs/{monthId}": {
+      "schema": { "$ref": "#/entities/MonthConfig" },
+      "description": "User-scoped monthly opening balance and budget targets keyed by YYYY-MM."
+    }
+  }
+}
