@@ -169,6 +169,142 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "SavingGoal": {
+      "title": "SavingGoal",
+      "description": "A personal savings goal with target amount, current saved balance, and target deadline.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "name": {
+          "type": "string",
+          "description": "Goal title (1-60 chars)."
+        },
+        "targetAmount": {
+          "type": "integer",
+          "description": "Target savings amount in Rupiah (positive integer up to 1,000,000,000,000)."
+        },
+        "currentAmount": {
+          "type": "integer",
+          "description": "Current accumulated savings in Rupiah (0 to 1,000,000,000,000)."
+        },
+        "targetDateMillis": {
+          "type": "integer",
+          "description": "Target achievement date in epoch milliseconds."
+        },
+        "iconKey": {
+          "type": "string",
+          "description": "Material icon identifier key."
+        },
+        "colorHex": {
+          "type": "string",
+          "description": "Accent color hex string (#RRGGBB)."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional goal note (max 200 chars)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation and update."
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "targetAmount",
+        "currentAmount",
+        "targetDateMillis",
+        "iconKey",
+        "colorHex",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "RecurringTemplate": {
+      "title": "RecurringTemplate",
+      "description": "A monthly recurring bill or income template that can be applied each month.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "title": {
+          "type": "string",
+          "description": "Template title (1-100 chars)."
+        },
+        "amount": {
+          "type": "integer",
+          "description": "Recurring amount in Rupiah (positive integer up to 1,000,000,000,000)."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["EXPENSE", "INCOME"],
+          "description": "Expense or income."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Associated category ID."
+        },
+        "categoryName": {
+          "type": "string",
+          "description": "Denormalized category name."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["TUNAI", "TRANSFER", "EWALLET", "KARTU"],
+          "description": "Payment method."
+        },
+        "dayOfMonth": {
+          "type": "integer",
+          "description": "Scheduled day of the month (1-31)."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether this recurring template is active."
+        },
+        "lastAppliedYearMonth": {
+          "type": "string",
+          "description": "Optional YYYY-MM indicating the latest month this template was applied."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional note (max 300 chars)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation and update."
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "amount",
+        "type",
+        "categoryId",
+        "categoryName",
+        "paymentMethod",
+        "dayOfMonth",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "firestore": {
@@ -183,6 +319,14 @@
     "/users/{userId}/monthConfigs/{monthId}": {
       "schema": { "$ref": "#/entities/MonthConfig" },
       "description": "User-scoped monthly opening balance and budget targets keyed by YYYY-MM."
+    },
+    "/users/{userId}/savingGoals/{goalId}": {
+      "schema": { "$ref": "#/entities/SavingGoal" },
+      "description": "User-scoped saving goals with progress and target deadlines."
+    },
+    "/users/{userId}/recurringTemplates/{templateId}": {
+      "schema": { "$ref": "#/entities/RecurringTemplate" },
+      "description": "User-scoped monthly recurring bills and salary templates."
     }
   }
 }

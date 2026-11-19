@@ -26,8 +26,12 @@ import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.EventRepeat
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material.icons.rounded.TrendingDown
+import androidx.compose.material.icons.rounded.WarningAmber
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -55,8 +59,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.R
+import com.example.model.BudgetAlert
+import com.example.model.BudgetAlertSeverity
 import com.example.model.Category
 import com.example.model.MonthlyReportData
+import com.example.model.RecurringTemplate
 import com.example.model.Transaction
 import com.example.model.TransactionType
 import com.example.ui.components.DailyBalanceLineChart
@@ -73,11 +80,15 @@ import kotlin.math.roundToInt
 fun DashboardScreen(
     report: MonthlyReportData,
     categories: List<Category>,
+    budgetAlerts: List<BudgetAlert>,
+    pendingRecurring: List<RecurringTemplate>,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onEditMonthConfig: () -> Unit,
     onTransactionClick: (Transaction) -> Unit,
     onSeeAllTransactions: () -> Unit,
+    onApplyPendingRecurring: (List<RecurringTemplate>) -> Unit,
+    onOpenPlanning: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var chartMode by remember { mutableIntStateOf(0) } // 0 = Saldo Harian, 1 = Keluar Harian
@@ -103,6 +114,25 @@ fun DashboardScreen(
                 report = report,
                 onEditMonthConfig = onEditMonthConfig
             )
+        }
+
+        // In-App Budget Alerts Banner (80%+ Warning / 100%+ Exceeded)
+        if (budgetAlerts.isNotEmpty()) {
+            item(key = "budget_alerts_banner") {
+                BudgetAlertsBanner(alerts = budgetAlerts)
+            }
+        }
+
+        // Pending Recurring Bills / Salary Quick Apply Banner
+        if (pendingRecurring.isNotEmpty()) {
+            item(key = "pending_recurring_banner") {
+                PendingRecurringBanner(
+                    monthLabel = report.monthLabel,
+                    pending = pendingRecurring,
+                    onApplyAll = { onApplyPendingRecurring(pendingRecurring) },
+                    onOpenPlanning = onOpenPlanning
+                )
+            }
         }
 
         // Monthly Budget Progress (if set)
@@ -739,6 +769,179 @@ private fun EmptyFinanceCard(onEditMonthConfig: () -> Unit) {
             )
             TextButton(onClick = onEditMonthConfig) {
                 Text(stringResource(R.string.dashboard_set_balance))
+            }
+        }
+    }
+}
+
+@Composable
+private fun BudgetAlertsBanner(alerts: List<BudgetAlert>) {
+    val hasExceeded = alerts.any { it.severity == BudgetAlertSeverity.EXCEEDED_100 }
+    val borderColor = if (hasExceeded) MaterialTheme.colorScheme.error.copy(alpha = 0.45f) else GoldAccent.copy(alpha = 0.55f)
+    val bgColor = if (hasExceeded) {
+        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
+    } else {
+        GoldAccent.copy(alpha = 0.12f)
+    }
+    val accentColor = if (hasExceeded) MaterialTheme.colorScheme.error else GoldAccent
+
+    Surface(
+        color = bgColor,
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, borderColor),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("dashboard_budget_alerts_banner")
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Rounded.WarningAmber,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = if (hasExceeded) "Peringatan Batas Anggaran Terlampaui" else "Anggaran Mendekati Batas",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            alerts.take(3).forEach { alert ->
+                val itemColor = if (alert.severity == BudgetAlertSeverity.EXCEEDED_100) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    GoldAccent
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = alert.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "${FinanceFormatters.formatRupiah(alert.spent)} / ${FinanceFormatters.formatRupiah(alert.limit)}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFamily),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Surface(
+                        color = itemColor.copy(alpha = 0.16f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "${alert.percentage}%",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontFamily = JetBrainsMonoFamily,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = itemColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PendingRecurringBanner(
+    monthLabel: String,
+    pending: List<RecurringTemplate>,
+    onApplyAll: () -> Unit,
+    onOpenPlanning: () -> Unit
+) {
+    val totalExpense = pending.filter { it.parsedType == TransactionType.EXPENSE }.sumOf { it.amount }
+    val totalIncome = pending.filter { it.parsedType == TransactionType.INCOME }.sumOf { it.amount }
+
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("dashboard_pending_recurring_banner")
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(11.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.EventRepeat,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "${pending.size} transaksi rutin siap dicatat ($monthLabel)",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    val summaryParts = buildList {
+                        if (totalExpense > 0L) add("Tagihan ${FinanceFormatters.formatCompactRupiah(totalExpense)}")
+                        if (totalIncome > 0L) add("Masuk ${FinanceFormatters.formatCompactRupiah(totalIncome)}")
+                    }
+                    if (summaryParts.isNotEmpty()) {
+                        Text(
+                            text = summaryParts.joinToString(" • "),
+                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = JetBrainsMonoFamily),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    onClick = onOpenPlanning,
+                    modifier = Modifier.testTag("dashboard_manage_recurring_button")
+                ) {
+                    Text("Kelola Rencana")
+                }
+                Button(
+                    onClick = onApplyAll,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.testTag("dashboard_apply_recurring_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.rec_apply_all))
+                }
             }
         }
     }

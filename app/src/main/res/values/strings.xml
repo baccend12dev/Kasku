@@ -82,6 +82,37 @@
     <string name="report_share_chooser">Bagikan Laporan Keuangan KasKu</string>
     <string name="report_account_section">Akun &amp; Sinkronisasi Cloud</string>
 
+    <!-- Planning: Saving Goals & Recurring -->
+    <string name="nav_planning">Rencana</string>
+    <string name="plan_title">Rencana Keuangan</string>
+    <string name="plan_tab_goals">Target Tabungan</string>
+    <string name="plan_tab_recurring">Rutin Bulanan</string>
+    <string name="goal_add_new">Target Baru</string>
+    <string name="goal_edit">Edit Target Tabungan</string>
+    <string name="goal_topup">Setor Tabungan</string>
+    <string name="goal_field_name">Nama Target (mis. Dana Darurat)</string>
+    <string name="goal_field_target">Target Nominal (Rp)</string>
+    <string name="goal_field_current">Sudah Terkumpul (Rp)</string>
+    <string name="goal_field_deadline">Target Tercapai</string>
+    <string name="goal_empty_title">Belum ada target tabungan</string>
+    <string name="goal_empty_subtitle">Buat pos seperti Dana Darurat, Liburan, atau Gadget agar progres tabungan lebih terukur.</string>
+    <string name="rec_add_new">Jadwal Rutin Baru</string>
+    <string name="rec_edit">Edit Transaksi Rutin</string>
+    <string name="rec_apply_all">Terapkan Semua</string>
+    <string name="rec_apply_one">Catat Sekarang</string>
+    <string name="rec_field_day">Tanggal Rutin Setiap Bulan (1–31)</string>
+    <string name="rec_empty_title">Belum ada transaksi rutin</string>
+    <string name="rec_empty_subtitle">Tambahkan tagihan bulanan (kos, listrik, internet) atau gaji agar cukup satu ketuk untuk mencatat setiap bulan.</string>
+
+    <!-- Reminders & Budget Alerts -->
+    <string name="reminder_section_title">Pengingat &amp; Peringatan Anggaran</string>
+    <string name="reminder_daily_label">Pengingat Catat Harian</string>
+    <string name="reminder_daily_desc">Kirim notifikasi setiap hari agar pengeluaran tidak lupa dicatat.</string>
+    <string name="reminder_budget_label">Peringatan Batas Anggaran</string>
+    <string name="reminder_budget_desc">Beri tahu saat pengeluaran bulanan atau kategori mencapai 80% atau 100%.</string>
+    <string name="reminder_time_label">Jam Pengingat</string>
+    <string name="reminder_test_button">Uji Notifikasi</string>
+
     <!-- Content Descriptions -->
     <string name="cd_prev_month">Bulan sebelumnya</string>
     <string name="cd_next_month">Bulan berikutnya</string>

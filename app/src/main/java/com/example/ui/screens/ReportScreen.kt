@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -8,6 +10,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,19 +26,27 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +66,7 @@ import androidx.core.content.FileProvider
 import com.example.R
 import com.example.export.PdfReportGenerator
 import com.example.model.MonthlyReportData
+import com.example.notifications.KasKuNotificationManager
 import com.example.ui.components.DailyBalanceLineChart
 import com.example.ui.theme.JetBrainsMonoFamily
 import com.example.util.CategoryVisuals
@@ -329,6 +342,11 @@ fun ReportScreen(
             }
         }
 
+        // Daily Reminder & Budget Alert Settings Card
+        item(key = "reminder_settings_card") {
+            ReminderSettingsCard(onNotify = onNotify)
+        }
+
         // Account & Sign Out Card
         item(key = "account_card") {
             Surface(
@@ -410,6 +428,280 @@ private fun SummaryLine(
                 fontWeight = FontWeight.Bold
             ),
             color = valueColor
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun ReminderSettingsCard(onNotify: (String) -> Unit) {
+    val context = LocalContext.current
+    var prefs by remember { mutableStateOf(KasKuNotificationManager.loadPreferences(context)) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var pendingPermissionAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            pendingPermissionAction?.invoke()
+        } else {
+            onNotify("Izin notifikasi ditolak. Aktifkan di Pengaturan perangkat untuk menerima pengingat.")
+        }
+        pendingPermissionAction = null
+    }
+
+    fun runWithNotificationPermission(action: () -> Unit) {
+        if (KasKuNotificationManager.hasNotificationPermission(context)) {
+            action()
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pendingPermissionAction = action
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            action()
+        }
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("reminder_settings_card")
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(13.dp))
+                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.NotificationsActive,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = stringResource(R.string.reminder_section_title),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+
+            // Daily Reminder Switch
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                    Text(
+                        text = stringResource(R.string.reminder_daily_label),
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = stringResource(R.string.reminder_daily_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = prefs.dailyReminderEnabled,
+                    onCheckedChange = { enabled ->
+                        if (enabled) {
+                            runWithNotificationPermission {
+                                val updated = prefs.copy(dailyReminderEnabled = true)
+                                prefs = updated
+                                KasKuNotificationManager.savePreferences(context, updated)
+                                onNotify(
+                                    "Pengingat harian aktif pukul ${
+                                        KasKuNotificationManager.formatTime(updated.reminderHour, updated.reminderMinute)
+                                    }"
+                                )
+                            }
+                        } else {
+                            val updated = prefs.copy(dailyReminderEnabled = false)
+                            prefs = updated
+                            KasKuNotificationManager.savePreferences(context, updated)
+                            onNotify("Pengingat harian dinonaktifkan")
+                        }
+                    },
+                    modifier = Modifier.testTag("daily_reminder_switch")
+                )
+            }
+
+            if (prefs.dailyReminderEnabled) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.reminder_time_label),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        TextButton(
+                            onClick = { showTimePicker = true },
+                            modifier = Modifier.testTag("pick_custom_reminder_time_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.AccessTime,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = KasKuNotificationManager.formatTime(prefs.reminderHour, prefs.reminderMinute),
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontFamily = JetBrainsMonoFamily,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(8 to 0, 12 to 0, 19 to 0, 20 to 0, 21 to 0).forEach { (h, m) ->
+                            val selected = prefs.reminderHour == h && prefs.reminderMinute == m
+                            FilterChip(
+                                selected = selected,
+                                onClick = {
+                                    val updated = prefs.copy(reminderHour = h, reminderMinute = m)
+                                    prefs = updated
+                                    KasKuNotificationManager.savePreferences(context, updated)
+                                    onNotify("Jam pengingat diatur ke ${KasKuNotificationManager.formatTime(h, m)}")
+                                },
+                                label = {
+                                    Text(
+                                        text = KasKuNotificationManager.formatTime(h, m),
+                                        style = MaterialTheme.typography.labelMedium.copy(fontFamily = JetBrainsMonoFamily)
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            // Budget Limit Alerts Switch
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                    Text(
+                        text = stringResource(R.string.reminder_budget_label),
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = stringResource(R.string.reminder_budget_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = prefs.budgetAlertsEnabled,
+                    onCheckedChange = { enabled ->
+                        if (enabled) {
+                            runWithNotificationPermission {
+                                val updated = prefs.copy(budgetAlertsEnabled = true)
+                                prefs = updated
+                                KasKuNotificationManager.savePreferences(context, updated)
+                                onNotify("Peringatan batas anggaran diaktifkan")
+                            }
+                        } else {
+                            val updated = prefs.copy(budgetAlertsEnabled = false)
+                            prefs = updated
+                            KasKuNotificationManager.savePreferences(context, updated)
+                            onNotify("Peringatan batas anggaran dinonaktifkan")
+                        }
+                    },
+                    modifier = Modifier.testTag("budget_alert_switch")
+                )
+            }
+
+            OutlinedButton(
+                onClick = {
+                    runWithNotificationPermission {
+                        KasKuNotificationManager.showDailyReminderNotification(context)
+                        onNotify("Notifikasi uji dikirim ke bilah status perangkat")
+                    }
+                },
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp)
+                    .testTag("test_notification_button")
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.NotificationsActive,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.reminder_test_button))
+            }
+        }
+    }
+
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = prefs.reminderHour,
+            initialMinute = prefs.reminderMinute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Pilih Jam Pengingat") },
+            text = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    TimePicker(state = timePickerState)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val updated = prefs.copy(
+                            reminderHour = timePickerState.hour,
+                            reminderMinute = timePickerState.minute
+                        )
+                        prefs = updated
+                        KasKuNotificationManager.savePreferences(context, updated)
+                        showTimePicker = false
+                        onNotify(
+                            "Jam pengingat diatur ke ${
+                                KasKuNotificationManager.formatTime(updated.reminderHour, updated.reminderMinute)
+                            }"
+                        )
+                    }
+                ) {
+                    Text("Simpan")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text(stringResource(R.string.tx_cancel))
+                }
+            }
         )
     }
 }

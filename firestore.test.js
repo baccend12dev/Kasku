@@ -282,6 +282,40 @@ test("Cross-user access is strictly denied across all collections", async () => 
       .collection("monthConfigs")
       .doc("2026-11")
       .set(validMonthConfigPayload(BOB_UID, "2026-11"));
+    await adminDb
+      .collection("users")
+      .doc(BOB_UID)
+      .collection("savingGoals")
+      .doc("bob_goal")
+      .set({
+        userId: BOB_UID,
+        name: "Dana Darurat",
+        targetAmount: 10000000,
+        currentAmount: 2500000,
+        targetDateMillis: Date.now() + 86400000 * 180,
+        iconKey: "savings",
+        colorHex: "#0E6B4E",
+        createdAt: new Date(Date.now() - 2000),
+        updatedAt: new Date(Date.now() - 2000),
+      });
+    await adminDb
+      .collection("users")
+      .doc(BOB_UID)
+      .collection("recurringTemplates")
+      .doc("bob_rec")
+      .set({
+        userId: BOB_UID,
+        title: "Bayar Kos",
+        amount: 1500000,
+        type: "EXPENSE",
+        categoryId: "cat_tagihan",
+        categoryName: "Tagihan & Utilitas",
+        paymentMethod: "TRANSFER",
+        dayOfMonth: 1,
+        active: true,
+        createdAt: new Date(Date.now() - 2000),
+        updatedAt: new Date(Date.now() - 2000),
+      });
   });
 
   const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
@@ -300,4 +334,133 @@ test("Cross-user access is strictly denied across all collections", async () => 
   await assertFails(
     aliceDb.collection("users").doc(BOB_UID).collection("monthConfigs").doc("2026-11").get()
   );
+  await assertFails(
+    aliceDb.collection("users").doc(BOB_UID).collection("savingGoals").get()
+  );
+  await assertFails(
+    aliceDb.collection("users").doc(BOB_UID).collection("recurringTemplates").get()
+  );
+});
+
+// --- SAVING GOALS CRUD & VALIDATION ---
+test("Owner can create, top-up, update, and delete savingGoals while invalid payloads fail", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const goalCol = aliceDb
+    .collection("users")
+    .doc(ALICE_UID)
+    .collection("savingGoals");
+
+  const now = new Date(Date.now() - 2000);
+  await assertSucceeds(
+    goalCol.doc("goal_1").set({
+      userId: ALICE_UID,
+      name: "Dana Darurat",
+      targetAmount: 15000000,
+      currentAmount: 3000000,
+      targetDateMillis: Date.now() + 86400000 * 365,
+      iconKey: "savings",
+      colorHex: "#0E6B4E",
+      note: "6 bulan pengeluaran",
+      createdAt: now,
+      updatedAt: now,
+    })
+  );
+
+  await assertSucceeds(goalCol.get());
+
+  // Top-up partial update
+  await assertSucceeds(
+    goalCol.doc("goal_1").update({
+      currentAmount: 4500000,
+      updatedAt: new Date(Date.now() - 1000),
+    })
+  );
+
+  // Invalid: targetAmount = 0
+  await assertFails(
+    goalCol.doc("goal_bad").set({
+      userId: ALICE_UID,
+      name: "Invalid",
+      targetAmount: 0,
+      currentAmount: 0,
+      targetDateMillis: Date.now() + 86400000,
+      iconKey: "savings",
+      colorHex: "#0E6B4E",
+      createdAt: now,
+      updatedAt: now,
+    })
+  );
+
+  // Reject ghost field
+  await assertFails(
+    goalCol.doc("goal_1").update({
+      isVip: true,
+      updatedAt: new Date(Date.now() - 500),
+    })
+  );
+
+  await assertSucceeds(goalCol.doc("goal_1").delete());
+});
+
+// --- RECURRING TEMPLATES CRUD & VALIDATION ---
+test("Owner can create, toggle active, mark lastAppliedYearMonth, and delete recurringTemplates", async () => {
+  const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
+  const recCol = aliceDb
+    .collection("users")
+    .doc(ALICE_UID)
+    .collection("recurringTemplates");
+
+  const now = new Date(Date.now() - 2000);
+  await assertSucceeds(
+    recCol.doc("rec_gaji").set({
+      userId: ALICE_UID,
+      title: "Gaji Bulanan",
+      amount: 8500000,
+      type: "INCOME",
+      categoryId: "cat_gaji",
+      categoryName: "Gaji",
+      paymentMethod: "TRANSFER",
+      dayOfMonth: 25,
+      active: true,
+      createdAt: now,
+      updatedAt: now,
+    })
+  );
+
+  await assertSucceeds(recCol.get());
+
+  // Mark applied for 2026-11
+  await assertSucceeds(
+    recCol.doc("rec_gaji").update({
+      lastAppliedYearMonth: "2026-11",
+      updatedAt: new Date(Date.now() - 1000),
+    })
+  );
+
+  // Toggle inactive
+  await assertSucceeds(
+    recCol.doc("rec_gaji").update({
+      active: false,
+      updatedAt: new Date(Date.now() - 500),
+    })
+  );
+
+  // Invalid dayOfMonth = 35
+  await assertFails(
+    recCol.doc("rec_bad_day").set({
+      userId: ALICE_UID,
+      title: "Internet",
+      amount: 350000,
+      type: "EXPENSE",
+      categoryId: "cat_tagihan",
+      categoryName: "Tagihan & Utilitas",
+      paymentMethod: "TRANSFER",
+      dayOfMonth: 35,
+      active: true,
+      createdAt: now,
+      updatedAt: now,
+    })
+  );
+
+  await assertSucceeds(recCol.doc("rec_gaji").delete());
 });

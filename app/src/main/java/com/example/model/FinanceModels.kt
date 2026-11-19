@@ -128,6 +128,74 @@ data class DefaultCategorySeed(
     val colorHex: String
 )
 
+@Keep
+@IgnoreExtraProperties
+data class SavingGoal(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val name: String = "",
+    val targetAmount: Long = 0L,
+    val currentAmount: Long = 0L,
+    val targetDateMillis: Long = 0L,
+    val iconKey: String = "savings",
+    val colorHex: String = "#0E6B4E",
+    val note: String? = null,
+    @ServerTimestamp val createdAt: Timestamp? = null,
+    @ServerTimestamp val updatedAt: Timestamp? = null
+) {
+    val progressFraction: Float
+        get() = if (targetAmount > 0L) (currentAmount.toFloat() / targetAmount.toFloat()).coerceIn(0f, 1f) else 0f
+
+    val remainingAmount: Long
+        get() = (targetAmount - currentAmount).coerceAtLeast(0L)
+
+    val reachedTarget: Boolean
+        get() = targetAmount > 0L && currentAmount >= targetAmount
+}
+
+@Keep
+@IgnoreExtraProperties
+data class RecurringTemplate(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val title: String = "",
+    val amount: Long = 0L,
+    val type: String = TransactionType.EXPENSE.name,
+    val categoryId: String = "",
+    val categoryName: String = "",
+    val paymentMethod: String = PaymentMethod.TRANSFER.name,
+    val dayOfMonth: Int = 1,
+    val active: Boolean = true,
+    val lastAppliedYearMonth: String? = null,
+    val note: String? = null,
+    @ServerTimestamp val createdAt: Timestamp? = null,
+    @ServerTimestamp val updatedAt: Timestamp? = null
+) {
+    val parsedType: TransactionType get() = TransactionType.fromRaw(type)
+    val parsedPaymentMethod: PaymentMethod get() = PaymentMethod.fromRaw(paymentMethod)
+}
+
+enum class BudgetAlertSeverity {
+    WARNING_80,
+    EXCEEDED_100
+}
+
+data class BudgetAlert(
+    val key: String,
+    val title: String,
+    val spent: Long,
+    val limit: Long,
+    val percentage: Int,
+    val severity: BudgetAlertSeverity
+)
+
+data class ReminderPreferences(
+    val dailyReminderEnabled: Boolean = false,
+    val reminderHour: Int = 20,
+    val reminderMinute: Int = 0,
+    val budgetAlertsEnabled: Boolean = true
+)
+
 object DefaultCategories {
     val seeds: List<DefaultCategorySeed> = listOf(
         DefaultCategorySeed("cat_makan", "Makan & Minum", TransactionType.EXPENSE, "restaurant", "#EA580C"),

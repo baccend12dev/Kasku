@@ -26,11 +26,13 @@ import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material.icons.rounded.ReceiptLong
+import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material.icons.rounded.Today
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -64,6 +66,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -72,19 +75,27 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.data.FinanceRepository
+import com.example.data.PlanningRepository
 import com.example.data.authStateFlow
 import com.example.data.signOut
 import com.example.model.Category
+import com.example.model.RecurringTemplate
+import com.example.model.SavingGoal
 import com.example.model.Transaction
 import com.example.model.TransactionType
 import com.example.model.UiState
+import com.example.notifications.KasKuNotificationManager
 import com.example.ui.FinanceViewModel
 import com.example.ui.auth.AuthScreen
 import com.example.ui.components.CategoryEditorSheet
+import com.example.ui.components.GoalTopUpDialog
 import com.example.ui.components.MonthConfigDialog
+import com.example.ui.components.RecurringTemplateEditorSheet
+import com.example.ui.components.SavingGoalEditorSheet
 import com.example.ui.components.TransactionEditorSheet
 import com.example.ui.screens.CategoriesScreen
 import com.example.ui.screens.DashboardScreen
+import com.example.ui.screens.PlanningScreen
 import com.example.ui.screens.ReportScreen
 import com.example.ui.screens.TransactionsScreen
 import com.example.ui.theme.KasKuTheme
@@ -97,6 +108,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        KasKuNotificationManager.ensureChannels(this)
         setContent {
             KasKuTheme {
                 AppNavigation()
@@ -114,6 +126,7 @@ private enum class KasKuTab(
     DASHBOARD("dashboard", R.string.nav_dashboard, Icons.Rounded.Dashboard, Icons.Outlined.Dashboard),
     TRANSACTIONS("transactions", R.string.nav_transactions, Icons.Rounded.ReceiptLong, Icons.Outlined.ReceiptLong),
     CATEGORIES("categories", R.string.nav_categories, Icons.Rounded.Category, Icons.Outlined.Category),
+    PLANNING("planning", R.string.nav_planning, Icons.Rounded.Savings, Icons.Outlined.Savings),
     REPORTS("reports", R.string.nav_reports, Icons.Rounded.PictureAsPdf, Icons.Outlined.PictureAsPdf)
 }
 
@@ -150,7 +163,7 @@ private fun KasKuAuthenticatedApp(
                 }
                 val databaseId = app.getString(R.string.firestore_database_id)
                 val db = FirebaseFirestore.getInstance(databaseId)
-                FinanceViewModel(FinanceRepository(db), currentUserId)
+                FinanceViewModel(FinanceRepository(db), PlanningRepository(db), currentUserId)
             }
         }
     )
@@ -162,6 +175,10 @@ private fun KasKuAuthenticatedApp(
 
     val reportState by viewModel.reportState.collectAsStateWithLifecycle()
     val categoriesState by viewModel.categoriesState.collectAsStateWithLifecycle()
+    val savingGoalsState by viewModel.savingGoalsState.collectAsStateWithLifecycle()
+    val recurringTemplatesState by viewModel.recurringTemplatesState.collectAsStateWithLifecycle()
+    val budgetAlerts by viewModel.budgetAlerts.collectAsStateWithLifecycle()
+    val pendingRecurring by viewModel.pendingRecurringForMonth.collectAsStateWithLifecycle()
     val selectedYearMonth by viewModel.selectedYearMonth.collectAsStateWithLifecycle()
     val selectedCategoryFilter by viewModel.selectedCategoryFilter.collectAsStateWithLifecycle()
 
@@ -174,6 +191,11 @@ private fun KasKuAuthenticatedApp(
     var showCategorySheet by remember { mutableStateOf(false) }
     var editingCategory by remember { mutableStateOf<Category?>(null) }
     var defaultCategoryType by remember { mutableStateOf(TransactionType.EXPENSE) }
+    var showSavingGoalSheet by remember { mutableStateOf(false) }
+    var editingSavingGoal by remember { mutableStateOf<SavingGoal?>(null) }
+    var topUpGoalTarget by remember { mutableStateOf<SavingGoal?>(null) }
+    var showRecurringSheet by remember { mutableStateOf(false) }
+    var editingRecurringTemplate by remember { mutableStateOf<RecurringTemplate?>(null) }
 
     BackHandler(enabled = currentTab != KasKuTab.DASHBOARD) {
         currentTab = KasKuTab.DASHBOARD
@@ -185,7 +207,15 @@ private fun KasKuAuthenticatedApp(
         }
     }
 
+    LaunchedEffect(viewModel, context) {
+        viewModel.budgetAlertEvents.collect { alert ->
+            KasKuNotificationManager.showBudgetAlertNotification(context, alert)
+        }
+    }
+
     val loadedCategories = (categoriesState as? UiState.Success)?.data.orEmpty()
+    val loadedSavingGoals = (savingGoalsState as? UiState.Success)?.data.orEmpty()
+    val loadedRecurringTemplates = (recurringTemplatesState as? UiState.Success)?.data.orEmpty()
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val useRail = maxWidth >= 600.dp
@@ -228,6 +258,7 @@ private fun KasKuAuthenticatedApp(
                                         KasKuTab.DASHBOARD -> stringResource(R.string.app_name)
                                         KasKuTab.TRANSACTIONS -> stringResource(R.string.nav_transactions)
                                         KasKuTab.CATEGORIES -> stringResource(R.string.cat_title)
+                                        KasKuTab.PLANNING -> stringResource(R.string.plan_title)
                                         KasKuTab.REPORTS -> stringResource(R.string.report_title)
                                     },
                                     style = MaterialTheme.typography.titleLarge,
@@ -269,7 +300,13 @@ private fun KasKuAuthenticatedApp(
                                             contentDescription = stringResource(tab.labelRes)
                                         )
                                     },
-                                    label = { Text(stringResource(tab.labelRes)) },
+                                    label = {
+                                        Text(
+                                            text = stringResource(tab.labelRes),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    },
                                     modifier = Modifier.testTag("nav_bar_${tab.route}")
                                 )
                             }
@@ -359,6 +396,8 @@ private fun KasKuAuthenticatedApp(
                                     KasKuTab.DASHBOARD -> DashboardScreen(
                                         report = report,
                                         categories = loadedCategories,
+                                        budgetAlerts = budgetAlerts,
+                                        pendingRecurring = pendingRecurring,
                                         onPreviousMonth = viewModel::selectPreviousMonth,
                                         onNextMonth = viewModel::selectNextMonth,
                                         onEditMonthConfig = { showMonthConfigDialog = true },
@@ -369,7 +408,9 @@ private fun KasKuAuthenticatedApp(
                                         onSeeAllTransactions = {
                                             viewModel.setCategoryFilter(null)
                                             currentTab = KasKuTab.TRANSACTIONS
-                                        }
+                                        },
+                                        onApplyPendingRecurring = viewModel::applyRecurringTemplates,
+                                        onOpenPlanning = { currentTab = KasKuTab.PLANNING }
                                     )
 
                                     KasKuTab.TRANSACTIONS -> TransactionsScreen(
@@ -404,6 +445,36 @@ private fun KasKuAuthenticatedApp(
                                             viewModel.setCategoryFilter(catId)
                                             currentTab = KasKuTab.TRANSACTIONS
                                         }
+                                    )
+
+                                    KasKuTab.PLANNING -> PlanningScreen(
+                                        selectedYearMonth = selectedYearMonth,
+                                        savingGoals = loadedSavingGoals,
+                                        recurringTemplates = loadedRecurringTemplates,
+                                        pendingRecurring = pendingRecurring,
+                                        onPreviousMonth = viewModel::selectPreviousMonth,
+                                        onNextMonth = viewModel::selectNextMonth,
+                                        onAddGoal = {
+                                            editingSavingGoal = null
+                                            showSavingGoalSheet = true
+                                        },
+                                        onEditGoal = { goal ->
+                                            editingSavingGoal = goal
+                                            showSavingGoalSheet = true
+                                        },
+                                        onTopUpGoal = { goal ->
+                                            topUpGoalTarget = goal
+                                        },
+                                        onAddRecurring = {
+                                            editingRecurringTemplate = null
+                                            showRecurringSheet = true
+                                        },
+                                        onEditRecurring = { template ->
+                                            editingRecurringTemplate = template
+                                            showRecurringSheet = true
+                                        },
+                                        onToggleRecurringActive = viewModel::toggleRecurringActive,
+                                        onApplyRecurring = viewModel::applyRecurringTemplates
                                     )
 
                                     KasKuTab.REPORTS -> ReportScreen(
@@ -484,6 +555,73 @@ private fun KasKuAuthenticatedApp(
                 )
             },
             onDelete = { catId -> viewModel.deleteCategory(catId) }
+        )
+    }
+
+    if (showSavingGoalSheet) {
+        SavingGoalEditorSheet(
+            editingGoal = editingSavingGoal,
+            onDismiss = { showSavingGoalSheet = false },
+            onSave = { editId, name, targetAmount, currentAmount, targetDateMillis, iconKey, colorHex, note ->
+                viewModel.saveSavingGoal(
+                    editingId = editId,
+                    name = name,
+                    targetAmount = targetAmount,
+                    currentAmount = currentAmount,
+                    targetDateMillis = targetDateMillis,
+                    iconKey = iconKey,
+                    colorHex = colorHex,
+                    note = note,
+                    onComplete = { showSavingGoalSheet = false }
+                )
+            },
+            onDelete = { goalId ->
+                viewModel.deleteSavingGoal(goalId)
+                showSavingGoalSheet = false
+            }
+        )
+    }
+
+    val goalForTopUp = topUpGoalTarget
+    if (goalForTopUp != null) {
+        GoalTopUpDialog(
+            goal = goalForTopUp,
+            onDismiss = { topUpGoalTarget = null },
+            onConfirm = { depositAmount, recordAsExpense ->
+                viewModel.topUpSavingGoal(
+                    goal = goalForTopUp,
+                    depositAmount = depositAmount,
+                    recordAsExpense = recordAsExpense,
+                    onComplete = { topUpGoalTarget = null }
+                )
+            }
+        )
+    }
+
+    if (showRecurringSheet) {
+        RecurringTemplateEditorSheet(
+            editingTemplate = editingRecurringTemplate,
+            categories = loadedCategories,
+            onDismiss = { showRecurringSheet = false },
+            onSave = { editId, title, amount, type, catId, catName, payment, dayOfMonth, active, note ->
+                viewModel.saveRecurringTemplate(
+                    editingId = editId,
+                    title = title,
+                    amount = amount,
+                    type = type,
+                    categoryId = catId,
+                    categoryName = catName,
+                    paymentMethod = payment,
+                    dayOfMonth = dayOfMonth,
+                    active = active,
+                    note = note,
+                    onComplete = { showRecurringSheet = false }
+                )
+            },
+            onDelete = { templateId ->
+                viewModel.deleteRecurringTemplate(templateId)
+                showRecurringSheet = false
+            }
         )
     }
 }

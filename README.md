@@ -12,9 +12,12 @@ Dokumen ini merangkum status pengembangan, arsitektur teknis, serta daftar fitur
 | **Desain Tema, Tipografi & Ikon Aplikasi** | ✅ Selesai | Tema *Emerald Ledger & Warm Alabaster* (Light/Dark), font lokal *Plus Jakarta Sans* & *JetBrains Mono*, serta custom adaptive launcher icon |
 | **Autentikasi Google Sign-In** | ✅ Selesai | Jetpack Credential Manager (`GetSignInWithGoogleOption` + auto sign-in) |
 | **Database Cloud Firestore** | ✅ Selesai & Aktif | Terhubung ke Cloud Firestore Enterprise, sinkronisasi real-time sudah terverifikasi |
-| **Firestore Security Rules** | ✅ Teruji & Ter-deploy | 6/6 pengujian emulator lulus & aturan sudah di-deploy ke backend |
+| **Firestore Security Rules** | ✅ Teruji & Ter-deploy | 8/8 pengujian emulator lulus & aturan sudah di-deploy ke backend |
 | **Visualisasi Grafik Saldo Harian** | ✅ Selesai | Grafik garis saldo harian, grafik batang pengeluaran harian, dan grafik donat kategori |
 | **Manajemen Kategori Pengeluaran** | ✅ Selesai | 10 kategori bawaan + CRUD kategori kustom (ikon, warna, batas anggaran) |
+| **Target Tabungan (Saving Goals)** | ✅ Selesai | Progres target, rekomendasi nabung/bulan, dan tombol `+ Setor` (opsional potong saldo bulanan) |
+| **Transaksi Berulang (Tagihan & Gaji)** | ✅ Selesai | Jadwal bulanan rutin (tanggal 1–31), status aktif/nonaktif, dan pencatatan 1-ketuk atomik |
+| **Pengingat Harian & Peringatan Anggaran** | ✅ Selesai | Pengingat harian (`AlarmManager` inexact + izin `POST_NOTIFICATIONS`), banner & notifikasi batas 80%/100% |
 | **Ekspor Laporan PDF** | ✅ Selesai | Generator A4 multi-halaman (Simpan via SAF & Bagikan via FileProvider) |
 
 - **Nama Aplikasi**: `KasKu`
@@ -78,7 +81,25 @@ Dokumen ini merangkum status pengembangan, arsitektur teknis, serta daftar fitur
   - **Simpan ke Perangkat (PDF)** via *Storage Access Framework* (`CreateDocument`).
   - **Bagikan Laporan PDF** via `FileProvider` ke WhatsApp, Email, Google Drive, dan aplikasi lainnya.
 
-### F. UI/UX & Responsivitas
+### F. Rencana Keuangan: Target Tabungan & Transaksi Berulang (`Rencana`)
+- **Target Tabungan (*Saving Goals*)**:
+  - Buat, ubah, dan hapus target tabungan (mis. Dana Darurat, Liburan, Gadget) dengan nominal target, saldo terkumpul, tenggat waktu, ikon, warna, dan catatan.
+  - Menampilkan **progres persentase**, sisa nominal, dan **rekomendasi setoran per bulan** berdasarkan sisa waktu hingga target.
+  - Tombol cepat **`+ Setor`**: Menambah saldo tabungan dan secara opsional langsung mencatat transaksi pengeluaran pada bulan berjalan secara atomik (`WriteBatch`).
+- **Transaksi Berulang (*Tagihan Rutin & Gaji*)**:
+  - Kelola template tagihan bulanan (kos, listrik, internet, cicilan) maupun pemasukan rutin (gaji) lengkap dengan tanggal rutin (1–31), kategori, metode pembayaran, dan sakelar aktif/nonaktif.
+  - Pelacakan `lastAppliedYearMonth` mencegah pencatatan ganda pada bulan yang sama.
+  - **Banner Cepat di Beranda & Tab Rencana**: Tombol 1-ketuk **Terapkan Semua** atau **Catat Sekarang** untuk memasukkan transaksi rutin ke buku kas bulan terpilih secara atomik.
+
+### G. Pengingat Harian & Peringatan Batas Anggaran
+- **Pengingat Catat Harian**:
+  - Sakelar aktif/nonaktif di tab **Laporan** dengan pilihan jam cepat (`08:00`, `12:00`, `19:00`, `20:00`, `21:00`) maupun *TimePicker* kustom serta tombol **Uji Notifikasi**.
+  - Meminta izin runtime `POST_NOTIFICATIONS` secara ramah di Android 13+ dan menggunakan `AlarmManager.setInexactRepeating` sesuai kebijakan Google Play.
+- **Peringatan Batas Anggaran (80% & 100%)**:
+  - **Banner Peringatan di Beranda**: Muncul otomatis saat pengeluaran bulanan atau kategori mana pun mencapai >=80% (*Mendekati Batas*) atau >=100% (*Terlampaui*).
+  - **Notifikasi Instan**: Mengirim notifikasi Android otomatis tepat ketika transaksi pengeluaran baru melewati ambang 80% atau 100%.
+
+### H. UI/UX & Responsivitas
 - Mendukung **Edge-to-Edge** penuh dengan penanganan *WindowInsets* (status bar & navigation bar).
 - **Tata Letak Adaptif**: Menggunakan `NavigationBar` (bawah) di layar ponsel dan otomatis beralih ke `NavigationRail` (samping) pada layar lebar/tablet (`>= 600dp`).
 - Mendukung **Mode Terang & Mode Gelap** mengikuti tema sistem.
@@ -95,14 +116,18 @@ Seluruh data pengguna disimpan secara terisolasi di bawah path `/users/{userId}/
    - Menyimpan: `userId`, `name`, `type`, `iconKey`, `colorHex`, `budgetLimit`, `createdAt`, `updatedAt`.
 3. `users/{userId}/monthConfigs/{YYYY-MM}`
    - Menyimpan: `userId`, `yearMonth`, `openingBalance`, `monthlyBudget`, `createdAt`, `updatedAt`.
+4. `users/{userId}/savingGoals/{goalId}`
+   - Menyimpan: `userId`, `name`, `targetAmount`, `currentAmount`, `targetDateMillis`, `iconKey`, `colorHex`, `note` *(opsional)*, `createdAt`, `updatedAt`.
+5. `users/{userId}/recurringTemplates/{templateId}`
+   - Menyimpan: `userId`, `title`, `amount`, `type`, `categoryId`, `categoryName`, `paymentMethod`, `dayOfMonth`, `active`, `lastAppliedYearMonth` *(opsional)*, `note` *(opsional)*, `createdAt`, `updatedAt`.
 
-> **Catatan**: File PDF yang diekspor dibuat secara lokal di perangkat pengguna dan **tidak** diunggah ke server Firebase.
+> **Catatan**: File PDF yang diekspor dibuat secara lokal di perangkat pengguna dan **tidak** diunggah ke server Firebase. Preferensi jam pengingat harian disimpan lokal di perangkat via `SharedPreferences`.
 
 ---
 
 ## 4. Verifikasi & Pengujian yang Sudah Dilakukan
 
-- **Security Rules Unit Testing (`firestore.test.js`)**: **6/6 test lulus** terhadap Firestore Emulator (penolakan akses tanpa login, CRUD transaksi/kategori/konfigurasi bulan, penolakan payload tidak valid & mutasi field permanen, serta isolasi penuh antar pengguna).
+- **Security Rules Unit Testing (`firestore.test.js`)**: **8/8 test lulus** terhadap Firestore Emulator (penolakan akses tanpa login, CRUD transaksi/kategori/konfigurasi bulan/target tabungan/transaksi rutin, penolakan payload tidak valid & mutasi field permanen, serta isolasi penuh antar pengguna).
 - **Deploy Rules**: Aturan keamanan sudah ter-deploy ke database produksi Firebase.
 - **Audit Keamanan Kode**: 0 temuan pola autentikasi terlarang (`signInAnonymously`, `signInWithEmailAndPassword`) maupun pemanggilan Firestore tanpa ID database.
 - **Sinkronisasi Live**: Pencatatan kategori, pengaturan saldo awal, dan transaksi sudah terverifikasi masuk ke Cloud Firestore secara real-time.
@@ -111,12 +136,10 @@ Seluruh data pengguna disimpan secara terisolasi di bawah path `/users/{userId}/
 
 ## 5. Rencana Pengembangan Berikutnya (Opsional / Backlog)
 
-Fitur-fitur berikut belum diimplementasikan dan dapat menjadi tahap pengembangan selanjutnya:
-
+- [x] **Target Tabungan (Saving Goals)** (Dana Darurat, Liburan, dll.)
+- [x] **Transaksi Berulang Otomatis** (tagihan bulanan, langganan, dan gaji rutin)
+- [x] **Pengingat Harian & Notifikasi Batas Anggaran**
 - [ ] **Multi-Dompet / Kantong Saldo** (saldo terpisah untuk Tunai, Bank, E-Wallet + transfer antar dompet)
-- [ ] **Transaksi Berulang Otomatis** (tagihan bulanan, langganan, dan gaji rutin)
 - [ ] **Perbandingan Antar Bulan & Grafik Tren 6 Bulan** (*Month-over-Month analytics*)
-- [ ] **Target Tabungan (Saving Goals)** (Dana Darurat, Liburan, dll.)
-- [ ] **Pengingat Harian & Notifikasi Batas Anggaran**
 - [ ] **Ekspor CSV / Excel & Laporan Rentang Tanggal Kustom**
 - [ ] **Kunci Biometrik (Sidik Jari / Face Unlock)**
