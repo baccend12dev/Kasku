@@ -229,11 +229,11 @@ class FinanceViewModel(
                 )
             }
             result.onSuccess {
-                val (txYearMonth, _) = FinanceFormatters.extractYearMonthAndDay(dateMillis)
+                val (txYearMonth, txDayOfMonth) = FinanceFormatters.extractYearMonthAndDay(dateMillis)
                 if (txYearMonth != _selectedYearMonth.value) {
                     _selectedYearMonth.value = txYearMonth
                 } else if (type == TransactionType.EXPENSE && editingId == null && previousReport != null) {
-                    evaluatePostExpenseAlert(previousReport, categoryId, categoryName, amount)
+                    evaluatePostExpenseAlert(previousReport, categoryId, categoryName, amount, txDayOfMonth)
                 }
                 _snackbarEvents.tryEmit(
                     if (editingId == null) "Transaksi berhasil dicatat" else "Transaksi diperbarui"
@@ -292,15 +292,21 @@ class FinanceViewModel(
         }
     }
 
-    fun saveMonthConfig(openingBalance: Long, monthlyBudget: Long, onComplete: () -> Unit = {}) {
+    fun saveMonthConfig(
+        openingBalance: Long,
+        monthlyBudget: Long,
+        weeklyBudget: Long = 0L,
+        onComplete: () -> Unit = {}
+    ) {
         viewModelScope.launch {
             repository.upsertMonthConfig(
                 userId = currentUserId,
                 yearMonth = _selectedYearMonth.value,
                 openingBalance = openingBalance,
-                monthlyBudget = monthlyBudget
+                monthlyBudget = monthlyBudget,
+                weeklyBudget = weeklyBudget
             ).onSuccess {
-                _snackbarEvents.tryEmit("Saldo awal & anggaran disimpan")
+                _snackbarEvents.tryEmit("Saldo awal & batas anggaran disimpan")
                 onComplete()
             }.onFailure { err ->
                 _snackbarEvents.tryEmit(err.localizedMessage ?: "Gagal menyimpan pengaturan bulan")
@@ -493,6 +499,21 @@ class FinanceViewModel(
                 )
             }
         }
+        if (report.weeklyBudget > 0L) {
+            val pct = ((report.currentWeekExpense.toDouble() / report.weeklyBudget.toDouble()) * 100.0).roundToInt()
+            if (pct >= 80) {
+                alerts.add(
+                    BudgetAlert(
+                        key = "weekly_${report.yearMonth}_${report.currentWeekStartDay}",
+                        title = "Anggaran Mingguan (${report.currentWeekLabel})",
+                        spent = report.currentWeekExpense,
+                        limit = report.weeklyBudget,
+                        percentage = pct,
+                        severity = if (pct >= 100) BudgetAlertSeverity.EXCEEDED_100 else BudgetAlertSeverity.WARNING_80
+                    )
+                )
+            }
+        }
         report.expenseByCategory.forEach { cat ->
             if (cat.budgetLimit > 0L) {
                 val pct = ((cat.totalAmount.toDouble() / cat.budgetLimit.toDouble()) * 100.0).roundToInt()
@@ -517,7 +538,8 @@ class FinanceViewModel(
         previousReport: MonthlyReportData,
         categoryId: String,
         categoryName: String,
-        addedAmount: Long
+        addedAmount: Long,
+        dayOfMonth: Int
     ) {
         if (previousReport.monthlyBudget > 0L) {
             val newMonthlySpent = previousReport.totalExpense + addedAmount
@@ -530,6 +552,26 @@ class FinanceViewModel(
                         title = "Anggaran Bulanan",
                         spent = newMonthlySpent,
                         limit = previousReport.monthlyBudget,
+                        percentage = newPct,
+                        severity = if (newPct >= 100) BudgetAlertSeverity.EXCEEDED_100 else BudgetAlertSeverity.WARNING_80
+                    )
+                )
+            }
+        }
+
+        if (previousReport.weeklyBudget > 0L &&
+            dayOfMonth in previousReport.currentWeekStartDay..previousReport.currentWeekEndDay
+        ) {
+            val newWeeklySpent = previousReport.currentWeekExpense + addedAmount
+            val newPct = ((newWeeklySpent.toDouble() / previousReport.weeklyBudget.toDouble()) * 100.0).roundToInt()
+            val oldPct = ((previousReport.currentWeekExpense.toDouble() / previousReport.weeklyBudget.toDouble()) * 100.0).roundToInt()
+            if ((oldPct < 80 && newPct >= 80) || (oldPct < 100 && newPct >= 100) || newPct >= 100) {
+                _budgetAlertEvents.tryEmit(
+                    BudgetAlert(
+                        key = "weekly_${previousReport.yearMonth}_${previousReport.currentWeekStartDay}",
+                        title = "Anggaran Mingguan (${previousReport.currentWeekLabel})",
+                        spent = newWeeklySpent,
+                        limit = previousReport.weeklyBudget,
                         percentage = newPct,
                         severity = if (newPct >= 100) BudgetAlertSeverity.EXCEEDED_100 else BudgetAlertSeverity.WARNING_80
                     )

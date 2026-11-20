@@ -33,12 +33,14 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -474,19 +476,30 @@ fun TransactionEditorSheet(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MonthConfigDialog(
     monthLabel: String,
     initialOpeningBalance: Long,
     initialMonthlyBudget: Long,
+    initialWeeklyBudget: Long,
     onDismiss: () -> Unit,
-    onSave: (openingBalance: Long, monthlyBudget: Long) -> Unit
+    onSave: (openingBalance: Long, monthlyBudget: Long, weeklyBudget: Long) -> Unit
 ) {
     var openingText by remember(initialOpeningBalance) {
         mutableStateOf(if (initialOpeningBalance != 0L) initialOpeningBalance.toString() else "")
     }
+    var monthlyEnabled by remember(initialMonthlyBudget) {
+        mutableStateOf(initialMonthlyBudget > 0L)
+    }
     var budgetText by remember(initialMonthlyBudget) {
         mutableStateOf(if (initialMonthlyBudget > 0L) initialMonthlyBudget.toString() else "")
+    }
+    var weeklyEnabled by remember(initialWeeklyBudget) {
+        mutableStateOf(initialWeeklyBudget > 0L)
+    }
+    var weeklyText by remember(initialWeeklyBudget) {
+        mutableStateOf(if (initialWeeklyBudget > 0L) initialWeeklyBudget.toString() else "")
     }
 
     AlertDialog(
@@ -498,7 +511,10 @@ fun MonthConfigDialog(
             }
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
                     text = stringResource(R.string.month_config_hint),
                     style = MaterialTheme.typography.bodySmall,
@@ -516,26 +532,115 @@ fun MonthConfigDialog(
                         .fillMaxWidth()
                         .testTag("opening_balance_input")
                 )
-                OutlinedTextField(
-                    value = budgetText,
-                    onValueChange = { raw -> budgetText = raw.filter { it.isDigit() }.take(12) },
-                    label = { Text(stringResource(R.string.month_config_budget)) },
-                    prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("monthly_budget_input")
-                )
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                // Optional Monthly Budget Switch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                        Text(
+                            text = "Target Bulanan (Opsional)",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = "Notifikasi saat pengeluaran bulan ini mencapai 80% & 100%.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = monthlyEnabled,
+                        onCheckedChange = { monthlyEnabled = it },
+                        modifier = Modifier.testTag("monthly_budget_switch")
+                    )
+                }
+
+                if (monthlyEnabled) {
+                    OutlinedTextField(
+                        value = budgetText,
+                        onValueChange = { raw -> budgetText = raw.filter { it.isDigit() }.take(12) },
+                        label = { Text(stringResource(R.string.month_config_budget)) },
+                        prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("monthly_budget_input")
+                    )
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                // Optional Weekly Budget Switch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                        Text(
+                            text = "Target Mingguan (Opsional)",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = "Pantau jatah pengeluaran Senin–Minggu agar belanja lebih terkontrol.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = weeklyEnabled,
+                        onCheckedChange = { weeklyEnabled = it },
+                        modifier = Modifier.testTag("weekly_budget_switch")
+                    )
+                }
+
+                if (weeklyEnabled) {
+                    OutlinedTextField(
+                        value = weeklyText,
+                        onValueChange = { raw -> weeklyText = raw.filter { it.isDigit() }.take(12) },
+                        label = { Text(stringResource(R.string.month_config_weekly_budget)) },
+                        prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("weekly_budget_input")
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf(200_000L to "200rb", 300_000L to "300rb", 500_000L to "500rb", 1_000_000L to "1jt")
+                            .forEach { (preset, label) ->
+                                FilterChip(
+                                    selected = weeklyText.toLongOrNull() == preset,
+                                    onClick = { weeklyText = preset.toString() },
+                                    label = {
+                                        Text(
+                                            text = label,
+                                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFamily)
+                                        )
+                                    }
+                                )
+                            }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     val opening = openingText.toLongOrNull() ?: 0L
-                    val budget = budgetText.toLongOrNull() ?: 0L
-                    onSave(opening, budget)
+                    val budget = if (monthlyEnabled) (budgetText.toLongOrNull() ?: 0L) else 0L
+                    val weekly = if (weeklyEnabled) (weeklyText.toLongOrNull() ?: 0L) else 0L
+                    onSave(opening, budget, weekly)
                 },
                 modifier = Modifier.testTag("save_month_config_button")
             ) {
@@ -573,6 +678,9 @@ fun CategoryEditorSheet(
     }
     var iconKey by remember(editingCategory) { mutableStateOf(editingCategory?.iconKey ?: "restaurant") }
     var colorHex by remember(editingCategory) { mutableStateOf(editingCategory?.colorHex ?: "#0E6B4E") }
+    var budgetEnabled by remember(editingCategory) {
+        mutableStateOf((editingCategory?.budgetLimit ?: 0L) > 0L)
+    }
     var budgetText by remember(editingCategory) {
         mutableStateOf(if ((editingCategory?.budgetLimit ?: 0L) > 0L) editingCategory?.budgetLimit.toString() else "")
     }
@@ -639,18 +747,72 @@ fun CategoryEditorSheet(
             )
 
             if (type == TransactionType.EXPENSE) {
-                OutlinedTextField(
-                    value = budgetText,
-                    onValueChange = { raw -> budgetText = raw.filter { it.isDigit() }.take(12) },
-                    label = { Text(stringResource(R.string.cat_field_budget)) },
-                    prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                     shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("cat_budget_input")
-                )
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
+                                Text(
+                                    text = stringResource(R.string.cat_budget_toggle_label),
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Text(
+                                    text = stringResource(R.string.cat_budget_toggle_desc),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = budgetEnabled,
+                                onCheckedChange = { budgetEnabled = it },
+                                modifier = Modifier.testTag("cat_budget_switch")
+                            )
+                        }
+
+                        if (budgetEnabled) {
+                            OutlinedTextField(
+                                value = budgetText,
+                                onValueChange = { raw -> budgetText = raw.filter { it.isDigit() }.take(12) },
+                                label = { Text(stringResource(R.string.cat_field_budget)) },
+                                prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("cat_budget_input")
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                listOf(200_000L to "200rb", 500_000L to "500rb", 1_000_000L to "1jt", 2_000_000L to "2jt")
+                                    .forEach { (preset, label) ->
+                                        FilterChip(
+                                            selected = budgetText.toLongOrNull() == preset,
+                                            onClick = { budgetText = preset.toString() },
+                                            label = {
+                                                Text(
+                                                    text = label,
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFamily)
+                                                )
+                                            }
+                                        )
+                                    }
+                            }
+                        }
+                    }
+                }
             }
 
             Text(stringResource(R.string.cat_field_color), style = MaterialTheme.typography.labelLarge)
@@ -742,7 +904,11 @@ fun CategoryEditorSheet(
                             validationError = "Nama kategori tidak boleh kosong."
                             return@Button
                         }
-                        val budget = if (type == TransactionType.EXPENSE) (budgetText.toLongOrNull() ?: 0L) else 0L
+                        val budget = if (type == TransactionType.EXPENSE && budgetEnabled) {
+                            budgetText.toLongOrNull() ?: 0L
+                        } else {
+                            0L
+                        }
                         onSave(editingCategory?.id, cleanName, type, iconKey, colorHex, budget)
                     },
                     shape = RoundedCornerShape(14.dp),

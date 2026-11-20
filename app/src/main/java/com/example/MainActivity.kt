@@ -527,11 +527,13 @@ private fun KasKuAuthenticatedApp(
             monthLabel = currentReport.monthLabel,
             initialOpeningBalance = currentReport.openingBalance,
             initialMonthlyBudget = currentReport.monthlyBudget,
+            initialWeeklyBudget = currentReport.weeklyBudget,
             onDismiss = { showMonthConfigDialog = false },
-            onSave = { opening, budget ->
+            onSave = { opening, budget, weekly ->
                 viewModel.saveMonthConfig(
                     openingBalance = opening,
                     monthlyBudget = budget,
+                    weeklyBudget = weekly,
                     onComplete = { showMonthConfigDialog = false }
                 )
             }

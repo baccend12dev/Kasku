@@ -69,6 +69,7 @@ service cloud.firestore {
              data.openingBalance >= -1000000000000 && data.openingBalance <= 1000000000000 &&
              data.monthlyBudget is int &&
              data.monthlyBudget >= 0 && data.monthlyBudget <= 1000000000000 &&
+             (!('weeklyBudget' in data) || (data.weeklyBudget is int && data.weeklyBudget >= 0 && data.weeklyBudget <= 1000000000000)) &&
              data.createdAt is timestamp && data.createdAt <= request.time &&
              data.updatedAt is timestamp && data.updatedAt <= request.time;
     }
@@ -193,7 +194,7 @@ service cloud.firestore {
                          ]) &&
                          incoming().keys().hasOnly([
                            'userId', 'yearMonth', 'openingBalance',
-                           'monthlyBudget', 'createdAt', 'updatedAt'
+                           'monthlyBudget', 'weeklyBudget', 'createdAt', 'updatedAt'
                          ]) &&
                          isValidMonthConfig(incoming(), userId, monthId);
 
@@ -205,10 +206,10 @@ service cloud.firestore {
                          incoming().createdAt == existing().createdAt &&
                          incoming().keys().hasOnly([
                            'userId', 'yearMonth', 'openingBalance',
-                           'monthlyBudget', 'createdAt', 'updatedAt'
+                           'monthlyBudget', 'weeklyBudget', 'createdAt', 'updatedAt'
                          ]) &&
                          incoming().diff(existing()).affectedKeys().hasOnly([
-                           'openingBalance', 'monthlyBudget', 'updatedAt'
+                           'openingBalance', 'monthlyBudget', 'weeklyBudget', 'updatedAt'
                          ]);
 
         allow delete: if isOwner(userId) && isValidId(monthId);

@@ -150,6 +150,10 @@
           "type": "integer",
           "description": "Target monthly spending budget in Rupiah (0 means unset)."
         },
+        "weeklyBudget": {
+          "type": "integer",
+          "description": "Optional target weekly spending budget in Rupiah (0 means unset)."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",

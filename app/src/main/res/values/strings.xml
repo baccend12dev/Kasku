@@ -67,10 +67,16 @@
     <string name="cat_confirm_delete_body">Transaksi lama tetap tersimpan, namun kategori ini tidak lagi muncul untuk catatan baru.</string>
 
     <!-- Month Config -->
-    <string name="month_config_title">Atur Saldo Awal &amp; Anggaran</string>
+    <string name="month_config_title">Atur Saldo &amp; Batas Anggaran</string>
     <string name="month_config_opening">Saldo Awal Bulan (Rp)</string>
     <string name="month_config_budget">Target Batas Pengeluaran Bulanan (Rp)</string>
-    <string name="month_config_hint">Saldo awal dipakai sebagai titik mulai grafik saldo harian bulan ini.</string>
+    <string name="month_config_weekly_budget">Target Batas Pengeluaran Mingguan (Rp)</string>
+    <string name="month_config_hint">Saldo awal dipakai sebagai titik mulai grafik harian. Batas bulanan &amp; mingguan bersifat opsional.</string>
+    <string name="dashboard_weekly_budget_progress">Anggaran Mingguan</string>
+    <string name="cat_budget_toggle_label">Batas Anggaran Kategori (Opsional)</string>
+    <string name="cat_budget_toggle_desc">Aktifkan untuk mendapat peringatan saat kategori ini mencapai 80% atau 100%.</string>
+    <string name="cat_budget_unset">Tanpa batas (opsional)</string>
+    <string name="cat_budget_set_action">Atur Batas</string>
 
     <!-- Reports / PDF -->
     <string name="report_title">Laporan Bulanan &amp; PDF</string>

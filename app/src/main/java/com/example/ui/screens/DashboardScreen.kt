@@ -138,10 +138,27 @@ fun DashboardScreen(
         // Monthly Budget Progress (if set)
         if (report.monthlyBudget > 0L) {
             item(key = "budget_card") {
-                MonthlyBudgetCard(
+                BudgetProgressCard(
+                    title = stringResource(R.string.dashboard_budget_progress),
+                    subtitle = report.monthLabel,
                     spent = report.totalExpense,
                     budget = report.monthlyBudget,
-                    onEdit = onEditMonthConfig
+                    onEdit = onEditMonthConfig,
+                    testTagName = "monthly_budget_card"
+                )
+            }
+        }
+
+        // Optional Weekly Budget Progress (if set)
+        if (report.weeklyBudget > 0L) {
+            item(key = "weekly_budget_card") {
+                BudgetProgressCard(
+                    title = stringResource(R.string.dashboard_weekly_budget_progress),
+                    subtitle = report.currentWeekLabel,
+                    spent = report.currentWeekExpense,
+                    budget = report.weeklyBudget,
+                    onEdit = onEditMonthConfig,
+                    testTagName = "weekly_budget_card"
                 )
             }
         }
@@ -410,7 +427,7 @@ private fun HeroBalanceCard(
                         )
                         Spacer(Modifier.width(5.dp))
                         Text(
-                            text = "Saldo Awal",
+                            text = "Saldo & Batas",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White
                         )
@@ -519,10 +536,13 @@ private fun HeroBalanceCard(
 }
 
 @Composable
-private fun MonthlyBudgetCard(
+private fun BudgetProgressCard(
+    title: String,
+    subtitle: String,
     spent: Long,
     budget: Long,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    testTagName: String
 ) {
     val ratio = (spent.toFloat() / budget.toFloat().coerceAtLeast(1f))
     val overBudget = spent > budget
@@ -540,6 +560,7 @@ private fun MonthlyBudgetCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onEdit)
+            .testTag(testTagName)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -547,10 +568,19 @@ private fun MonthlyBudgetCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = stringResource(R.string.dashboard_budget_progress),
-                    style = MaterialTheme.typography.titleSmall
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    if (subtitle.isNotBlank()) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 Text(
                     text = "${(ratio * 100f).roundToInt()}%",
                     style = MaterialTheme.typography.labelLarge.copy(fontFamily = JetBrainsMonoFamily),

@@ -387,7 +387,8 @@ class FinanceRepository(
         userId: String,
         yearMonth: String,
         openingBalance: Long,
-        monthlyBudget: Long
+        monthlyBudget: Long,
+        weeklyBudget: Long = 0L
     ): Result<Unit> {
         val docPath = "users/$userId/monthConfigs/$yearMonth"
         return try {
@@ -395,6 +396,7 @@ class FinanceRepository(
             require(YEAR_MONTH_REGEX.matches(yearMonth)) { "Format bulan tidak valid." }
             require(openingBalance in -1_000_000_000_000L..1_000_000_000_000L) { "Saldo awal di luar batas." }
             require(monthlyBudget in 0L..1_000_000_000_000L) { "Anggaran bulanan tidak valid." }
+            require(weeklyBudget in 0L..1_000_000_000_000L) { "Anggaran mingguan tidak valid." }
 
             val docRef = userDoc(uid).collection("monthConfigs").document(yearMonth)
             val snapshot = docRef.get().await()
@@ -403,6 +405,7 @@ class FinanceRepository(
                     mapOf(
                         "openingBalance" to openingBalance,
                         "monthlyBudget" to monthlyBudget,
+                        "weeklyBudget" to weeklyBudget,
                         "updatedAt" to FieldValue.serverTimestamp()
                     )
                 ).await()
@@ -413,6 +416,7 @@ class FinanceRepository(
                         "yearMonth" to yearMonth,
                         "openingBalance" to openingBalance,
                         "monthlyBudget" to monthlyBudget,
+                        "weeklyBudget" to weeklyBudget,
                         "createdAt" to FieldValue.serverTimestamp(),
                         "updatedAt" to FieldValue.serverTimestamp()
                     )

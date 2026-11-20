@@ -250,7 +250,16 @@ test("Owner can create and update monthConfig keyed by YYYY-MM", async () => {
     cfgCol.doc("2026-11").update({
       openingBalance: 7500000,
       monthlyBudget: 4000000,
+      weeklyBudget: 300000,
       updatedAt: new Date(Date.now() - 1000),
+    })
+  );
+
+  // Reject negative weeklyBudget
+  await assertFails(
+    cfgCol.doc("2026-11").update({
+      weeklyBudget: -50000,
+      updatedAt: new Date(Date.now() - 500),
     })
   );
 

@@ -40,8 +40,8 @@ Dokumen ini merangkum status pengembangan, arsitektur teknis, serta daftar fitur
 - **Navigasi Periode Bulanan**: Pindah antar bulan (`< Bulan Tahun >`) dan tombol pintas kembali ke bulan berjalan.
 - **Kartu Ringkasan Saldo Bulanan**:
   - Menampilkan **Saldo Bulan Ini**, **Saldo Awal Bulan**, **Total Pemasukan**, dan **Total Pengeluaran**.
-  - Pengaturan **Saldo Awal Bulan** dan **Target Batas Pengeluaran Bulanan** per periode (`YYYY-MM`).
-  - Indikator progres **Anggaran Bulanan** otomatis berubah warna saat mendekati atau melebihi batas.
+  - Pengaturan **Saldo Awal Bulan**, **Target Batas Pengeluaran Bulanan (opsional)**, dan **Target Batas Pengeluaran Mingguan (opsional)** per periode (`YYYY-MM`).
+  - Indikator progres **Anggaran Bulanan & Mingguan** otomatis berubah warna saat mendekati (80%) atau melebihi (100%) batas.
 - **Grafik Pemantauan Harian Interaktif**:
   - **Mode Saldo Harian (Line & Area Chart)**: Memantau pergerakan saldo penutupan dari tanggal 1 sampai akhir bulan; dapat diketuk atau digeser (*scrub*) untuk melihat saldo, total keluar, dan total masuk pada tanggal tertentu.
   - **Mode Keluar Harian (Bar Chart)**: Menampilkan lonjakan pengeluaran per hari beserta jumlah transaksi di tanggal yang dipilih.
@@ -67,7 +67,7 @@ Dokumen ini merangkum status pengembangan, arsitektur teknis, serta daftar fitur
   - *Pengeluaran*: Makan & Minum, Transportasi, Belanja, Tagihan & Utilitas, Kesehatan, Hiburan, Pendidikan, Lainnya.
   - *Pemasukan*: Gaji, Bonus & Tambahan.
 - **Grafik Donat Distribusi Pengeluaran** menampilkan persentase porsi tiap kategori.
-- **Kelola Kategori Kustom**: Tambah, edit, dan hapus kategori dengan pilihan 20 ikon, 10 palet warna, tipe (*Pengeluaran/Pemasukan*), dan **batas anggaran bulanan per kategori**.
+- **Kelola Kategori Kustom & Batas Opsional**: Tambah, edit, dan hapus kategori dengan pilihan 20 ikon, 10 palet warna, tipe (*Pengeluaran/Pemasukan*), serta sakelar **batas anggaran bulanan per kategori (opsional)** dengan tombol cepat **Atur Batas** langsung di kartu kategori.
 - **Pintasan Filter**: Ketuk kartu kategori untuk langsung membuka daftar transaksi pada kategori tersebut.
 
 ### E. Laporan Bulanan & Ekspor PDF (`Laporan`)
@@ -116,7 +116,7 @@ Seluruh data pengguna disimpan secara terisolasi di bawah path `/users/{userId}/
 2. `users/{userId}/categories/{categoryId}`
    - Menyimpan: `userId`, `name`, `type`, `iconKey`, `colorHex`, `budgetLimit`, `createdAt`, `updatedAt`.
 3. `users/{userId}/monthConfigs/{YYYY-MM}`
-   - Menyimpan: `userId`, `yearMonth`, `openingBalance`, `monthlyBudget`, `createdAt`, `updatedAt`.
+   - Menyimpan: `userId`, `yearMonth`, `openingBalance`, `monthlyBudget`, `weeklyBudget` *(opsional)*, `createdAt`, `updatedAt`.
 4. `users/{userId}/savingGoals/{goalId}`
    - Menyimpan: `userId`, `name`, `targetAmount`, `currentAmount`, `targetDateMillis`, `iconKey`, `colorHex`, `note` *(opsional)*, `createdAt`, `updatedAt`.
 5. `users/{userId}/recurringTemplates/{templateId}`

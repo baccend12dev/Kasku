@@ -46,6 +46,7 @@ import com.example.model.Category
 import com.example.model.MonthlyReportData
 import com.example.model.TransactionType
 import com.example.ui.components.CategoryDonutChart
+import com.example.ui.theme.GoldAccent
 import com.example.ui.theme.JetBrainsMonoFamily
 import com.example.util.CategoryVisuals
 import com.example.util.FinanceFormatters
@@ -235,34 +236,75 @@ fun CategoriesScreen(
                         }
                     }
 
-                    if (cat.budgetLimit > 0L && activeType == TransactionType.EXPENSE) {
-                        val budgetRatio = (spent.toFloat() / cat.budgetLimit.toFloat()).coerceIn(0f, 1f)
-                        val exceeded = spent > cat.budgetLimit
-                        Spacer(Modifier.height(10.dp))
-                        LinearProgressIndicator(
-                            progress = { budgetRatio },
-                            color = if (exceeded) MaterialTheme.colorScheme.error else accent,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp))
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = if (exceeded) "Melebihi batas anggaran" else "Batas bulanan",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (exceeded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    if (activeType == TransactionType.EXPENSE) {
+                        if (cat.budgetLimit > 0L) {
+                            val rawRatio = spent.toFloat() / cat.budgetLimit.toFloat()
+                            val pct = (rawRatio * 100f).roundToInt()
+                            val exceeded = spent > cat.budgetLimit
+                            val barColor = when {
+                                exceeded -> MaterialTheme.colorScheme.error
+                                rawRatio >= 0.8f -> GoldAccent
+                                else -> accent
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            LinearProgressIndicator(
+                                progress = { rawRatio.coerceIn(0f, 1f) },
+                                color = barColor,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
                             )
-                            Text(
-                                text = FinanceFormatters.formatRupiah(cat.budgetLimit),
-                                style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFamily),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Spacer(Modifier.height(5.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = when {
+                                        exceeded -> "Melebihi batas ($pct%)"
+                                        rawRatio >= 0.8f -> "Mendekati batas ($pct%)"
+                                        else -> "Batas bulanan ($pct%)"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (exceeded || rawRatio >= 0.8f) barColor else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = FinanceFormatters.formatRupiah(cat.budgetLimit),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = JetBrainsMonoFamily),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.cat_budget_unset),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { onEditCategory(cat) }
+                                        .testTag("set_category_budget_${cat.id}")
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.cat_budget_set_action),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

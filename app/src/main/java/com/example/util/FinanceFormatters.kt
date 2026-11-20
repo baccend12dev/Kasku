@@ -147,6 +147,7 @@ object FinanceFormatters {
     ): MonthlyReportData {
         val openingBalance = monthConfig?.openingBalance ?: 0L
         val monthlyBudget = monthConfig?.monthlyBudget ?: 0L
+        val weeklyBudget = monthConfig?.weeklyBudget ?: 0L
         val totalDays = daysInMonth(yearMonth)
         val shortMonth = formatShortMonth(yearMonth)
 
@@ -204,11 +205,30 @@ object FinanceFormatters {
         }
 
         val nowYm = currentYearMonth()
+        val nowCal = Calendar.getInstance()
         val elapsedDays = if (yearMonth == nowYm) {
-            Calendar.getInstance().get(Calendar.DAY_OF_MONTH).coerceAtLeast(1)
+            nowCal.get(Calendar.DAY_OF_MONTH).coerceAtLeast(1)
         } else {
             totalDays
         }
+
+        // Active Monday–Sunday week window clipped within this month
+        val (weekStartDay, weekEndDay) = if (yearMonth == nowYm) {
+            val today = nowCal.get(Calendar.DAY_OF_MONTH)
+            val dow = nowCal.get(Calendar.DAY_OF_WEEK) // Sun=1, Mon=2 .. Sat=7
+            val offsetFromMonday = if (dow == Calendar.SUNDAY) 6 else dow - Calendar.MONDAY
+            val start = (today - offsetFromMonday).coerceAtLeast(1)
+            val end = (start + 6 - (if (today - offsetFromMonday < 1) (1 - (today - offsetFromMonday)) else 0))
+                .coerceAtMost(totalDays)
+            start to end
+        } else {
+            (totalDays - 6).coerceAtLeast(1) to totalDays
+        }
+
+        val currentWeekExpense = dailyPoints
+            .filter { it.dayOfMonth in weekStartDay..weekEndDay }
+            .sumOf { it.expense }
+        val currentWeekLabel = "$weekStartDay–$weekEndDay $shortMonth"
 
         val highestExpenseDay = dailyPoints
             .filter { it.expense > 0L }
@@ -219,6 +239,11 @@ object FinanceFormatters {
             monthLabel = formatMonthLabel(yearMonth),
             openingBalance = openingBalance,
             monthlyBudget = monthlyBudget,
+            weeklyBudget = weeklyBudget,
+            currentWeekExpense = currentWeekExpense,
+            currentWeekLabel = currentWeekLabel,
+            currentWeekStartDay = weekStartDay,
+            currentWeekEndDay = weekEndDay,
             totalIncome = totalIncome,
             totalExpense = totalExpense,
             closingBalance = runningBalance,

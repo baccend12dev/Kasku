@@ -74,6 +74,7 @@ data class MonthConfig(
     val yearMonth: String = "",
     val openingBalance: Long = 0L,
     val monthlyBudget: Long = 0L,
+    val weeklyBudget: Long = 0L,
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null
 )
@@ -109,6 +110,11 @@ data class MonthlyReportData(
     val monthLabel: String,
     val openingBalance: Long,
     val monthlyBudget: Long,
+    val weeklyBudget: Long = 0L,
+    val currentWeekExpense: Long = 0L,
+    val currentWeekLabel: String = "",
+    val currentWeekStartDay: Int = 1,
+    val currentWeekEndDay: Int = 7,
     val totalIncome: Long,
     val totalExpense: Long,
     val closingBalance: Long,
