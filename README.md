@@ -215,9 +215,9 @@ Hasil APK tersedia di: `app/build/outputs/apk/debug/app-debug.apk`.
 ### C. Build & Publish APK Otomatis via GitHub Actions
 Workflow `.github/workflows/release-apk.yml` sudah siap dipakai di repo ini maupun di repo hasil fork:
 
-1. **(Disarankan agar Google Sign-In aktif)** Simpan secret di **Settings → Secrets and variables → Actions**:
-   - `DEBUG_KEYSTORE_BASE64`: isi `debug.keystore` dalam format base64 (`base64 -w 0 debug.keystore`) — SHA-1 harus terdaftar di Firebase.
-   - *(Opsional untuk fork)* `GOOGLE_SERVICES_JSON_BASE64`: jika tidak ingin menaruh `app/google-services.json` langsung di repo publik.
+1. **Tambahkan Secret di Settings → Secrets and variables → Actions**:
+   - **`GOOGLE_SERVICES_JSON`** *(wajib jika `app/google-services.json` tidak di-commit ke repo)*: tempel langsung seluruh isi teks file `google-services.json` yang diunduh dari Firebase Console *(tanpa perlu konversi Base64; tersedia juga `GOOGLE_SERVICES_JSON_BASE64` bila ingin format Base64)*.
+   - **`DEBUG_KEYSTORE_BASE64`** *(disarankan agar Google Sign-In aktif)*: isi `debug.keystore` dalam format base64 (`base64 -w 0 debug.keystore`) — SHA-1 harus terdaftar di Firebase.
    - *(Opsional untuk rilis produksi)* `RELEASE_KEYSTORE_BASE64`, `STORE_PASSWORD`, dan `KEY_PASSWORD` (alias `upload`) agar workflow otomatis mem-build varian `:app:assembleRelease`.
 2. Jalankan workflow:
    - Buka tab **Actions → Build & Release KasKu APK → Run workflow** lalu isi tag versi (mis. `v1.0.0`), **atau**

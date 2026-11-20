@@ -46,13 +46,26 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
-      - name: Prepare Firebase Config (Optional Secret Override)
+      - name: Prepare Firebase Config
         env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
           GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
         run: |
-          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+            echo "Applied GOOGLE_SERVICES_JSON secret to app/google-services.json."
+          elif [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
             printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > app/google-services.json
             echo "Applied GOOGLE_SERVICES_JSON_BASE64 secret to app/google-services.json."
+          fi
+
+          if [ ! -f "app/google-services.json" ]; then
+            echo "::error::app/google-services.json tidak ditemukan! Tambahkan isi file google-services.json dari Firebase Console ke GitHub Secret bernama GOOGLE_SERVICES_JSON."
+            exit 1
+          fi
+
+          if ! grep -q '"client_type"[[:space:]]*:[[:space:]]*3' app/google-services.json; then
+            echo "::warning::app/google-services.json belum memiliki OAuth Web Client (client_type: 3). Pastikan Authentication -> Google Sign-In sudah aktif di Firebase Console lalu unduh ulang google-services.json."
           fi
 
       - name: Prepare Signing Keystore
