@@ -46,16 +46,49 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
+      - name: Prepare Firebase Config (Optional Secret Override)
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 -d > app/google-services.json
+            echo "Applied GOOGLE_SERVICES_JSON_BASE64 secret to app/google-services.json."
+          fi
+
       - name: Prepare Signing Keystore
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
         run: |
           if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
             printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 -d > my-upload-key.jks
             echo "BUILD_VARIANT=release" >> "$GITHUB_ENV"
-          else
+            echo "Using RELEASE_KEYSTORE_BASE64 secret for release signing."
+          elif [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
+            printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 -d > debug.keystore
+            echo "BUILD_VARIANT=debug" >> "$GITHUB_ENV"
+            echo "Using DEBUG_KEYSTORE_BASE64 secret for debug signing."
+          elif [ -f "debug.keystore.base64" ]; then
             base64 -d debug.keystore.base64 > debug.keystore
             echo "BUILD_VARIANT=debug" >> "$GITHUB_ENV"
+            echo "Using repository debug.keystore.base64."
+          else
+            echo "debug.keystore.base64 not found; generating a fresh debug.keystore with keytool..."
+            keytool -genkeypair -v \
+              -keystore debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+            echo "BUILD_VARIANT=debug" >> "$GITHUB_ENV"
+            echo "### Signing Certificate Info (Auto-generated Debug Keystore)" >> "$GITHUB_STEP_SUMMARY"
+            echo "Jika Google Sign-In dipakai pada APK ini, tambahkan SHA-1 berikut di Firebase Console atau simpan isi \`debug.keystore.base64\` ke secret \`DEBUG_KEYSTORE_BASE64\`:" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            keytool -list -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android | grep -E "SHA1:|SHA256:" >> "$GITHUB_STEP_SUMMARY" || true
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Build APK

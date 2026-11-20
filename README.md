@@ -23,8 +23,7 @@ Dokumen ini merangkum status pengembangan, arsitektur teknis, serta daftar fitur
 
 - **Nama Aplikasi**: `KasKu`
 - **Platform**: Android (Kotlin, Jetpack Compose, Material Design 3, Min SDK 24 / Target SDK 36)
-- **Firebase Project ID**: `gen-lang-client-0077623958`
-- **Firestore Database ID**: `ai-studio-android-kasku-b6a5b26f-bbcc-4afb-a821-88399d1b5680`
+- **Backend**: Firebase Authentication (Google Sign-In) & Cloud Firestore *(dapat diganti ke proyek Firebase sendiri saat di-fork)*
 
 ---
 
@@ -136,50 +135,98 @@ Seluruh data pengguna disimpan secara terisolasi di bawah path `/users/{userId}/
 
 ---
 
-## 5. Build APK & Publikasi ke GitHub Releases
+## 5. Panduan Instalasi untuk Pengguna & Developer (Fork + Firebase Sendiri)
 
-Proyek ini sudah dilengkapi hasil build APK lokal (`app/build/outputs/apk/debug/app-debug.apk`) serta workflow otomatis **GitHub Actions** (`.github/workflows/release-apk.yml`) agar Anda dapat membangun dan menerbitkan file `.apk` langsung ke halaman **GitHub Releases**.
+Repositori ini terbuka untuk di-**fork**, dijalankan secara lokal, maupun dihubungkan ke **proyek Firebase milik Anda sendiri**.
 
-### A. Cara Otomatis via GitHub Actions (Direkomendasikan)
-Setelah proyek di-push ke repositori GitHub:
+### A. Untuk Pengguna (Pasang APK Langsung)
+1. Buka tab **Releases** di repositori GitHub ini.
+2. Unduh file **`KasKu-v*.apk`** versi terbaru.
+3. Pasang di perangkat Android Anda (aktifkan izin *Install from unknown sources* jika diminta).
 
-1. **Melalui Menu GitHub Actions (1 Klik)**:
-   - Buka repositori Anda di GitHub → pilih tab **Actions**.
-   - Pilih workflow **Build & Release KasKu APK** → klik **Run workflow**.
-   - Masukkan tag versi (misalnya `v1.0.0`) lalu klik **Run workflow**.
-2. **Atau melalui Git Tag**:
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-3. **Hasil Otomatis**:
-   - GitHub akan membangun file **`KasKu-v1.0.0.apk`** menggunakan JDK 21 & Gradle 9.3.1.
-   - Secara default (tanpa konfigurasi secret tambahan), workflow men-decode `debug.keystore.base64` yang SHA-1-nya sudah terdaftar di Firebase sehingga **Google Sign-In langsung berfungsi**.
-   - File APK otomatis diunggah ke halaman **Releases** GitHub (siap diunduh & dipasang di Android) dan juga tersimpan sebagai *Workflow Artifact*.
+---
 
-### B. Cara Build Lokal (Android Studio / Terminal)
-Prasyarat: **JDK 21**, **Android SDK (API 36.1)**, dan **Gradle 9.3.1**.
+### B. Untuk Developer (Fork & Pasang Firebase Sendiri)
 
-1. **Siapkan Keystore Proyek** (agar login Google langsung berjalan):
-   ```bash
-   base64 -d debug.keystore.base64 > debug.keystore
-   ```
-2. **Jalankan Build APK**:
-   ```bash
-   gradle :app:assembleDebug
-   ```
-3. **Lokasi File APK**:
-   - `app/build/outputs/apk/debug/app-debug.apk`
-   - Anda dapat mengunggah file tersebut secara manual ke **GitHub → Releases → Draft a new release → Attach binaries**.
+**Prasyarat:** Android Studio terbaru (atau CLI dengan **JDK 21**, **Android SDK API 36.1**, **Gradle 9.3.1**), serta [Firebase CLI](https://firebase.google.com/docs/cli) untuk deploy *Security Rules*.
 
-### C. Opsional: Build Release APK dengan Keystore Produksi Sendiri
-Jika ingin menerbitkan APK bertanda tangan **release keystore** milik sendiri (misalnya untuk distribusi publik/Play Store):
-1. Daftarkan **SHA-1** dan **SHA-256** dari keystore baru Anda di **Firebase Console → Project Settings → Your Apps (Android)** lalu perbarui `app/google-services.json`.
-2. Di repositori GitHub, tambahkan 3 *Repository Secrets* (**Settings → Secrets and variables → Actions**):
-   - `RELEASE_KEYSTORE_BASE64`: isi file `.jks` dalam format base64 (`base64 -w 0 my-upload-key.jks`)
-   - `STORE_PASSWORD`: password keystore
-   - `KEY_PASSWORD`: password key alias `upload`
-3. Saat workflow **Build & Release KasKu APK** dijalankan kembali, workflow akan otomatis membangun varian **release** (`:app:assembleRelease`).
+#### 1. Fork & Clone Repositori
+```bash
+git clone https://github.com/<username-anda>/<nama-repo>.git
+cd <nama-repo>
+```
+
+#### 2. Siapkan Keystore Debug Lokal
+Agar penandatanganan konsisten dan SHA-1 bisa didaftarkan ke Firebase Anda:
+```bash
+keytool -genkeypair -v \
+  -keystore debug.keystore \
+  -storepass android \
+  -alias androiddebugkey \
+  -keypass android \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 10000 \
+  -dname "CN=Android Debug,O=Android,C=US"
+```
+Lalu cek sidik jari **SHA-1** dan **SHA-256**:
+```bash
+keytool -list -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android
+```
+
+#### 3. Buat & Konfigurasi Proyek Firebase Sendiri
+1. Buka [Firebase Console](https://console.firebase.google.com/) → buat proyek baru.
+2. Aktifkan **Authentication → Sign-in method → Google**.
+3. Aktifkan **Cloud Firestore** (pilih mode *Production*, bisa memakai database `(default)` atau nama database kustom).
+4. *(Opsional, disarankan untuk fork)* Ubah `applicationId` di `app/build.gradle.kts` (mis. `com.namaanda.kasku`) — biarkan `namespace = "com.example"` tetap sama.
+5. Tambahkan **Android App** di **Project Settings → Your Apps** memakai `applicationId` tersebut, lalu masukkan **SHA-1** dan **SHA-256** dari langkah 2.
+6. Unduh file **`google-services.json`** lalu timpa `app/google-services.json`.
+
+#### 4. Sesuaikan ID Database Firestore
+Buka `app/src/main/res/values/firebase_applet_config.xml` dan sesuaikan dengan nama database Firestore Anda (isi `(default)` jika memakai database standar Firebase):
+```xml
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<resources>
+    <string name="firestore_database_id" translatable="false">(default)</string>
+</resources>
+```
+Sesuaikan juga field `"database"` di `firebase.json` (mis. `"(default)"`) agar cocok saat deploy rules.
+
+#### 5. Deploy & Uji Firestore Security Rules
+Proyek ini sudah menyertakan aturan keamanan lengkap di `firestore.rules` dan 8 unit test di `firestore.test.js`:
+```bash
+# (Opsional) Uji aturan keamanan secara lokal dengan Firestore Emulator
+firebase emulators:exec --only firestore --project demo-no-project "node --test firestore.test.js"
+
+# Deploy aturan keamanan ke proyek Firebase Anda
+firebase login
+firebase use <FIREBASE_PROJECT_ID_ANDA>
+firebase deploy --only firestore:rules
+```
+
+#### 6. Build APK Secara Lokal
+```bash
+gradle :app:assembleDebug
+```
+Hasil APK tersedia di: `app/build/outputs/apk/debug/app-debug.apk`.
+
+---
+
+### C. Build & Publish APK Otomatis via GitHub Actions
+Workflow `.github/workflows/release-apk.yml` sudah siap dipakai di repo ini maupun di repo hasil fork:
+
+1. **(Disarankan agar Google Sign-In aktif)** Simpan secret di **Settings → Secrets and variables → Actions**:
+   - `DEBUG_KEYSTORE_BASE64`: isi `debug.keystore` dalam format base64 (`base64 -w 0 debug.keystore`) — SHA-1 harus terdaftar di Firebase.
+   - *(Opsional untuk fork)* `GOOGLE_SERVICES_JSON_BASE64`: jika tidak ingin menaruh `app/google-services.json` langsung di repo publik.
+   - *(Opsional untuk rilis produksi)* `RELEASE_KEYSTORE_BASE64`, `STORE_PASSWORD`, dan `KEY_PASSWORD` (alias `upload`) agar workflow otomatis mem-build varian `:app:assembleRelease`.
+2. Jalankan workflow:
+   - Buka tab **Actions → Build & Release KasKu APK → Run workflow** lalu isi tag versi (mis. `v1.0.0`), **atau**
+   - Push tag Git baru:
+     ```bash
+     git tag v1.0.0
+     git push origin v1.0.0
+     ```
+3. File **`KasKu-v1.0.0.apk`** otomatis ter-build dan terpublikasi di halaman **Releases** GitHub.
 
 ---
 
