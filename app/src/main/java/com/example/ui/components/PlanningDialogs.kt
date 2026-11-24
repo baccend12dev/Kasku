@@ -153,11 +153,15 @@ fun SavingGoalEditorSheet(
                 modifier = Modifier.fillMaxWidth().testTag("goal_name_input")
             )
 
+            val rupiahTransformation = remember { RupiahVisualTransformation() }
             OutlinedTextField(
                 value = targetText,
-                onValueChange = { targetText = it.filter(Char::isDigit).take(12); validationError = null },
+                onValueChange = { targetText = sanitizeRupiahDigits(it); validationError = null },
                 label = { Text(stringResource(R.string.goal_field_target)) },
+                placeholder = { Text("0", fontFamily = JetBrainsMonoFamily) },
                 prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
+                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = JetBrainsMonoFamily),
+                visualTransformation = rupiahTransformation,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp),
@@ -166,9 +170,12 @@ fun SavingGoalEditorSheet(
 
             OutlinedTextField(
                 value = currentText,
-                onValueChange = { currentText = it.filter(Char::isDigit).take(12) },
+                onValueChange = { currentText = sanitizeRupiahDigits(it) },
                 label = { Text(stringResource(R.string.goal_field_current)) },
+                placeholder = { Text("0", fontFamily = JetBrainsMonoFamily) },
                 prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
+                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = JetBrainsMonoFamily),
+                visualTransformation = rupiahTransformation,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp),
@@ -363,11 +370,15 @@ fun GoalTopUpDialog(
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = JetBrainsMonoFamily),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                val rupiahTransformation = remember { RupiahVisualTransformation() }
                 OutlinedTextField(
                     value = depositText,
-                    onValueChange = { depositText = it.filter(Char::isDigit).take(12); errorText = null },
+                    onValueChange = { depositText = sanitizeRupiahDigits(it); errorText = null },
                     label = { Text("Nominal Setoran (Rp)") },
+                    placeholder = { Text("0", fontFamily = JetBrainsMonoFamily) },
                     prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = JetBrainsMonoFamily),
+                    visualTransformation = rupiahTransformation,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
@@ -577,11 +588,15 @@ fun RecurringTemplateEditorSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                val rupiahTransformation = remember { RupiahVisualTransformation() }
                 OutlinedTextField(
                     value = amountText,
-                    onValueChange = { amountText = it.filter(Char::isDigit).take(12); validationError = null },
+                    onValueChange = { amountText = sanitizeRupiahDigits(it); validationError = null },
                     label = { Text(stringResource(R.string.tx_field_amount)) },
+                    placeholder = { Text("0", fontFamily = JetBrainsMonoFamily) },
                     prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = JetBrainsMonoFamily),
+                    visualTransformation = rupiahTransformation,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),

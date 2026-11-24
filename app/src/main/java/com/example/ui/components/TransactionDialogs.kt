@@ -203,15 +203,18 @@ fun TransactionEditorSheet(
             }
 
             // Amount Field + Quick Nominal Chips
+            val rupiahTransformation = remember { RupiahVisualTransformation() }
             OutlinedTextField(
                 value = amountText,
                 onValueChange = { raw ->
-                    amountText = raw.filter { it.isDigit() }.take(12)
+                    amountText = sanitizeRupiahDigits(raw)
                     validationError = null
                 },
                 label = { Text(stringResource(R.string.tx_field_amount)) },
+                placeholder = { Text("0", fontFamily = JetBrainsMonoFamily) },
                 prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily, fontWeight = FontWeight.Bold) },
                 textStyle = MaterialTheme.typography.titleMedium.copy(fontFamily = JetBrainsMonoFamily),
+                visualTransformation = rupiahTransformation,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
                 shape = RoundedCornerShape(14.dp),
@@ -520,11 +523,15 @@ fun MonthConfigDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                val rupiahTransformation = remember { RupiahVisualTransformation() }
                 OutlinedTextField(
                     value = openingText,
-                    onValueChange = { raw -> openingText = raw.filter { it.isDigit() }.take(12) },
+                    onValueChange = { raw -> openingText = sanitizeRupiahDigits(raw) },
                     label = { Text(stringResource(R.string.month_config_opening)) },
+                    placeholder = { Text("0", fontFamily = JetBrainsMonoFamily) },
                     prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = JetBrainsMonoFamily),
+                    visualTransformation = rupiahTransformation,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
@@ -562,9 +569,12 @@ fun MonthConfigDialog(
                 if (monthlyEnabled) {
                     OutlinedTextField(
                         value = budgetText,
-                        onValueChange = { raw -> budgetText = raw.filter { it.isDigit() }.take(12) },
+                        onValueChange = { raw -> budgetText = sanitizeRupiahDigits(raw) },
                         label = { Text(stringResource(R.string.month_config_budget)) },
+                        placeholder = { Text("0", fontFamily = JetBrainsMonoFamily) },
                         prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = JetBrainsMonoFamily),
+                        visualTransformation = rupiahTransformation,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
@@ -603,9 +613,12 @@ fun MonthConfigDialog(
                 if (weeklyEnabled) {
                     OutlinedTextField(
                         value = weeklyText,
-                        onValueChange = { raw -> weeklyText = raw.filter { it.isDigit() }.take(12) },
+                        onValueChange = { raw -> weeklyText = sanitizeRupiahDigits(raw) },
                         label = { Text(stringResource(R.string.month_config_weekly_budget)) },
+                        placeholder = { Text("0", fontFamily = JetBrainsMonoFamily) },
                         prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = JetBrainsMonoFamily),
+                        visualTransformation = rupiahTransformation,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
@@ -780,11 +793,15 @@ fun CategoryEditorSheet(
                         }
 
                         if (budgetEnabled) {
+                            val rupiahTransformation = remember { RupiahVisualTransformation() }
                             OutlinedTextField(
                                 value = budgetText,
-                                onValueChange = { raw -> budgetText = raw.filter { it.isDigit() }.take(12) },
+                                onValueChange = { raw -> budgetText = sanitizeRupiahDigits(raw) },
                                 label = { Text(stringResource(R.string.cat_field_budget)) },
+                                placeholder = { Text("0", fontFamily = JetBrainsMonoFamily) },
                                 prefix = { Text("Rp ", fontFamily = JetBrainsMonoFamily) },
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = JetBrainsMonoFamily),
+                                visualTransformation = rupiahTransformation,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
